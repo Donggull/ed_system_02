@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { useDesignSystem } from '@/contexts/DesignSystemContext'
+import { useDesignSystem, ComponentType } from '@/contexts/DesignSystemContext'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/Card'
@@ -176,7 +176,7 @@ export default function ComponentPreviewEnhanced({ className }: ComponentPreview
     }
     
     // 컴포넌트 설정값 적용
-    const applySettings = (component: JSX.Element) => {
+    const applySettings = (component: React.ReactElement) => {
       if (!componentSettings || Object.keys(componentSettings).length === 0) {
         return component
       }
@@ -207,8 +207,8 @@ export default function ComponentPreviewEnhanced({ className }: ComponentPreview
   }
   
   // 현재 선택된 컴포넌트 타입 가져오기
-  const getCurrentComponentType = () => {
-    const componentMap = {
+  const getCurrentComponentType = (): ComponentType => {
+    const componentMap: Record<string, ComponentType> = {
       'profile': 'card',
       'product': 'card', 
       'blog': 'card'
@@ -452,7 +452,7 @@ export default function ComponentPreviewEnhanced({ className }: ComponentPreview
             <div
               className={`
                 relative flex items-center justify-center p-8 h-full
-                ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}
+                ${theme?.colors?.background === '#000000' || theme?.colors?.background === '#1a1a1a' ? 'bg-gray-900' : 'bg-gray-50'}
                 transition-all duration-300
               `}
               style={{

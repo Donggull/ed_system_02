@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import { inputVariants } from '@/lib/variants'
 import { cn } from '@/lib/utils'
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /**
    * 입력 필드의 크기
    */

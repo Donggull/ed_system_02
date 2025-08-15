@@ -112,7 +112,7 @@ export default function ComponentSettings({ componentType, onSettingsChange }: C
                 {setting.label}
               </label>
               
-              {setting.type === 'select' && (
+              {setting.type === 'select' && setting.options && (
                 <select
                   value={settings[setting.key] || setting.default || setting.options[0]}
                   onChange={(e) => handleSettingChange(setting.key, e.target.value)}
@@ -143,10 +143,10 @@ export default function ComponentSettings({ componentType, onSettingsChange }: C
               {setting.type === 'text' && (
                 <input
                   type="text"
-                  value={settings[setting.key] || setting.default || ''}
+                  value={settings[setting.key] || (typeof setting.default === 'string' ? setting.default : '') || ''}
                   onChange={(e) => handleSettingChange(setting.key, e.target.value)}
                   className="w-full px-2 py-1 text-xs border border-border rounded bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  placeholder={setting.default || ''}
+                  placeholder={typeof setting.default === 'string' ? setting.default : ''}
                 />
               )}
             </div>

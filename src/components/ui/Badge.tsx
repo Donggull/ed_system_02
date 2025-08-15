@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import { badgeVariants } from '@/lib/variants'
 import { cn } from '@/lib/utils'
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface BadgeProps extends React.HTMLAttributes<HTMLElement> {
   /**
    * 배지의 시각적 스타일
    */
@@ -38,7 +38,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
  * <Badge clickable onClick={handleClick}>Clickable</Badge>
  * ```
  */
-const Badge = forwardRef<HTMLDivElement, BadgeProps>(
+const Badge = forwardRef<HTMLElement, BadgeProps>(
   ({ 
     className, 
     variant, 
@@ -53,7 +53,7 @@ const Badge = forwardRef<HTMLDivElement, BadgeProps>(
     
     return (
       <Component
-        ref={ref}
+        ref={ref as any}
         className={cn(
           badgeVariants({ variant, className }),
           size === 'sm' && 'px-2 py-0.5 text-xs',

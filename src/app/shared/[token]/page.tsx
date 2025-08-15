@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation'
 import { Heart, Download, Star, Calendar, Share2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { DesignSystemWithDetails } from '@/lib/designSystemService'
-import ComponentPreviewEnhanced from '@/components/design-system/ComponentPreviewEnhanced'
 import RatingModal from '@/components/design-system/RatingModal'
 
 export default function SharedDesignSystemPage() {
@@ -241,20 +240,17 @@ export default function SharedDesignSystemPage() {
             <h2 className="text-xl font-semibold mb-4">컴포넌트</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {designSystem.components.map((component) => (
-                <ComponentPreviewEnhanced
-                  key={component.id}
-                  component={{
-                    id: component.id,
-                    name: component.name,
-                    type: component.type as 'button' | 'input' | 'card' | 'typography',
-                    props: component.props,
-                    styles: component.styles
-                  }}
-                  theme={designSystem.themes[currentTheme]}
-                  onEdit={() => {}} // 읽기 전용이므로 빈 함수
-                  onDelete={() => {}} // 읽기 전용이므로 빈 함수
-                  isEditable={false}
-                />
+                <div key={component.id} className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-2">{component.name}</h3>
+                  <div className="text-sm text-gray-600 mb-2">
+                    타입: {component.type}
+                  </div>
+                  <div className="bg-gray-50 rounded p-4">
+                    <p className="text-sm text-gray-500">
+                      컴포넌트 미리보기는 편집 모드에서만 사용 가능합니다.
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

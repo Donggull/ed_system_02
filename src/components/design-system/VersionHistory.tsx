@@ -28,12 +28,6 @@ export default function VersionHistory({
   const [loading, setLoading] = useState(false)
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchVersions()
-    }
-  }, [isOpen, fetchVersions])
-
   const fetchVersions = useCallback(async () => {
     setLoading(true)
     try {
@@ -48,6 +42,12 @@ export default function VersionHistory({
       setLoading(false)
     }
   }, [designSystemId])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchVersions()
+    }
+  }, [isOpen, fetchVersions])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -151,25 +151,25 @@ export default function VersionHistory({
                             <div>
                               <span className="font-medium">컴포넌트:</span>
                               <span className="ml-2 text-gray-600">
-                                {version.data.components?.length || 0}개
+                                {Array.isArray(version.data.components) ? version.data.components.length : 0}개
                               </span>
                             </div>
                             <div>
                               <span className="font-medium">테마:</span>
                               <span className="ml-2 text-gray-600">
-                                {version.data.themes?.length || 0}개
+                                {Array.isArray(version.data.themes) ? version.data.themes.length : 0}개
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        {version.data.tags && version.data.tags.length > 0 && (
+                        {Array.isArray(version.data.tags) && version.data.tags.length > 0 && (
                           <div>
                             <span className="font-medium text-sm text-gray-700">태그:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {version.data.tags.map((tag: string) => (
+                              {version.data.tags.map((tag: string, index: number) => (
                                 <span
-                                  key={tag}
+                                  key={`${tag}-${index}`}
                                   className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
                                 >
                                   {tag}
