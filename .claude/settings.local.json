@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(touch:*)",
+      "Bash(curl:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:tweakcn.com)",
+      "mcp__supabase-mcp__apply_migration",
+      "mcp__supabase-mcp__list_tables",
+      "Bash(echo $SHELL)",
+      "WebSearch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(claude mcp:*)",
+      "Bash(npx:*)",
+      "Bash(timeout:*)",
+      "Bash(where node)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

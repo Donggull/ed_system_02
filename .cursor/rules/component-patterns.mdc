@@ -1,0 +1,95 @@
+# 컴포넌트 구현 패턴
+
+## 🧩 기본 컴포넌트 구조
+모든 UI 컴포넌트는 다음 패턴을 따라야 합니다:
+
+```tsx
+import { forwardRef } from 'react'
+import { cn } from '@/lib/utils'
+import { componentVariants } from '@/lib/variants'
+
+interface ComponentProps extends React.HTMLAttributes<HTMLElement> {
+  variant?: 'default' | 'secondary' | 'outline'
+  size?: 'sm' | 'md' | 'lg'
+  children?: React.ReactNode
+}
+
+const Component = forwardRef<HTMLElement, ComponentProps>(
+  ({ className, variant, size, children, ...props }, ref) => {
+    return (
+      <element
+        ref={ref}
+        className={cn(componentVariants({ variant, size, className }))}
+        {...props}
+      >
+        {children}
+      </element>
+    )
+  }
+)
+
+Component.displayName = 'Component'
+export default Component
+```
+
+## 🎨 Variants 시스템
+class-variance-authority를 사용하여 컴포넌트 variants를 정의:
+
+```tsx
+// lib/variants.ts
+import { cva } from 'class-variance-authority'
+
+export const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+        icon: "h-10 w-10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+```
+
+## 🔧 유틸리티 함수
+clsx와 tailwind-merge를 조합한 유틸리티:
+
+```tsx
+// lib/utils.ts
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+```
+
+## ♿ 접근성 가이드라인
+- 모든 인터랙티브 요소에 적절한 aria-* 속성 추가
+- 키보드 네비게이션 지원
+- 스크린 리더 호환성
+- 포커스 표시 명확화
+
+## 📱 반응형 디자인
+- 모바일 퍼스트 접근법
+- Tailwind의 반응형 프리픽스 활용 (sm:, md:, lg:, xl:)
+- 터치 친화적 인터페이스
+description:
+globs:
+alwaysApply: false
+---

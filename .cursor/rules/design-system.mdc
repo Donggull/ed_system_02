@@ -1,0 +1,54 @@
+# 디자인 시스템 구축 가이드
+
+## 🎯 프로젝트 구조
+이 프로젝트는 Next.js + Tailwind CSS를 기반으로 한 완전한 디자인 시스템을 구축합니다.
+
+### 📁 폴더 구조
+```
+src/
+├── components/
+│   ├── ui/          # 기본 UI 컴포넌트
+│   ├── layout/      # 레이아웃 컴포넌트
+│   ├── forms/       # 폼 관련 컴포넌트
+│   └── feedback/    # 피드백 컴포넌트
+├── styles/
+│   ├── globals.css
+│   └── components.css
+└── lib/
+    ├── utils.ts     # 유틸리티 함수
+    └── variants.ts  # 컴포넌트 variants
+```
+
+## 🔥 우선순위별 컴포넌트 구현
+
+### 높은 우선순위 (필수)
+- Button, Input, Textarea, Select, Checkbox, Radio, Badge, Avatar, Icon, Divider
+- Form Container, Label, Error Message, Field Group
+
+### 중간 우선순위 (UX 향상)
+- Alert, Toast, Loading, Progress, Skeleton
+- Breadcrumb, Pagination, Tabs, Menu
+- Modal, Tooltip, Popover
+
+### 낮은 우선순위 (고급 기능)
+- Table, Accordion, List, Empty State
+- Switch, Drawer, Gallery, Stepper, Calendar
+
+## 🛠 기술 스택
+- **Framework**: Next.js 15 + App Router
+- **Styling**: Tailwind CSS v4
+- **TypeScript**: 엄격한 타입 안전성
+- **Variants**: class-variance-authority 사용
+- **Utilities**: clsx/tailwind-merge 조합
+
+## 📋 컴포넌트 작성 규칙
+1. 모든 컴포넌트는 TypeScript로 작성
+2. forwardRef 사용하여 ref 전달
+3. className prop으로 스타일 커스터마이징 허용
+4. 접근성(aria-*) 속성 포함
+5. 반응형 디자인 고려
+6. 다크모드 지원
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,170 @@
+# 컴포넌트 구현 체크리스트
+
+## 🚀 구현 우선순위
+
+### Phase 1: 핵심 기반 (1-2주)
+- [ ] **Button** - 모든 variant와 size 구현
+- [ ] **Input** - 기본 텍스트 입력 필드
+- [ ] **Label** - 폼 라벨 컴포넌트
+- [ ] **utils.ts** - cn 함수 및 기본 유틸리티
+- [ ] **variants.ts** - 기본 variant 시스템
+
+### Phase 2: 폼 시스템 (2-3주)
+- [ ] **Textarea** - 멀티라인 입력
+- [ ] **Select** - 드롭다운 선택
+- [ ] **Checkbox** - 체크박스 입력
+- [ ] **Radio** - 라디오 버튼
+- [ ] **Form Container** - 폼 레이아웃
+- [ ] **Error Message** - 유효성 검사 오류
+
+### Phase 3: 피드백 & 상태 (3-4주)
+- [ ] **Alert** - 시스템 메시지
+- [ ] **Toast** - 일시적 알림
+- [ ] **Loading Spinner** - 로딩 상태
+- [ ] **Progress Bar** - 진행률
+- [ ] **Skeleton** - 로딩 플레이스홀더
+
+### Phase 4: 네비게이션 (4-5주)
+- [ ] **Tabs** - 탭 네비게이션
+- [ ] **Menu** - 드롭다운 메뉴
+- [ ] **Breadcrumb** - 페이지 경로
+- [ ] **Pagination** - 페이지 네비게이션
+
+### Phase 5: 오버레이 (5-6주)
+- [ ] **Modal** - 팝업 창
+- [ ] **Tooltip** - 도움말
+- [ ] **Popover** - 추가 정보
+
+### Phase 6: 고급 컴포넌트 (6-8주)
+- [ ] **Table** - 데이터 테이블
+- [ ] **Accordion** - 접을 수 있는 콘텐츠
+- [ ] **Switch** - 토글 스위치
+- [ ] **Drawer** - 사이드 패널
+
+## ✅ 각 컴포넌트 구현 체크리스트
+
+### 기본 요구사항
+- [ ] TypeScript 인터페이스 정의
+- [ ] forwardRef 구현
+- [ ] className prop 지원
+- [ ] 기본 접근성 속성
+- [ ] 반응형 디자인
+- [ ] 다크모드 지원
+
+### 고급 요구사항
+- [ ] Storybook 스토리 작성
+- [ ] 단위 테스트 작성
+- [ ] 문서화 (JSDoc)
+- [ ] 예제 페이지
+- [ ] 접근성 테스트
+
+## 🧪 테스트 전략
+
+### 단위 테스트
+```tsx
+// __tests__/Button.test.tsx
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import Button from '../Button'
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>)
+    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument()
+  })
+
+  it('handles click events', async () => {
+    const handleClick = jest.fn()
+    const user = userEvent.setup()
+    
+    render(<Button onClick={handleClick}>Click me</Button>)
+    await user.click(screen.getByRole('button'))
+    
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+})
+```
+
+### 접근성 테스트
+```tsx
+// __tests__/Button.a11y.test.tsx
+import { render } from '@testing-library/react'
+import { axe, toHaveNoViolations } from 'jest-axe'
+import Button from '../Button'
+
+expect.extend(toHaveNoViolations)
+
+describe('Button Accessibility', () => {
+  it('should not have accessibility violations', async () => {
+    const { container } = render(<Button>Accessible Button</Button>)
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
+  })
+})
+```
+
+## 📚 문서화 가이드
+
+### JSDoc 예시
+```tsx
+/**
+ * Button 컴포넌트
+ * 
+ * @example
+ * ```tsx
+ * <Button variant="primary" size="lg" onClick={handleClick}>
+ *   클릭하세요
+ * </Button>
+ * ```
+ */
+interface ButtonProps {
+  /** 버튼의 시각적 스타일 */
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
+  /** 버튼의 크기 */
+  size?: 'sm' | 'md' | 'lg'
+  /** 클릭 이벤트 핸들러 */
+  onClick?: () => void
+  /** 버튼 텍스트 */
+  children: React.ReactNode
+}
+```
+
+### Storybook 예시
+```tsx
+// Button.stories.tsx
+import type { Meta, StoryObj } from '@storybook/react'
+import Button from './Button'
+
+const meta: Meta<typeof Button> = {
+  title: 'Components/Button',
+  component: Button,
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  argTypes: {
+    variant: {
+      control: { type: 'select' },
+      options: ['primary', 'secondary', 'outline', 'ghost'],
+    },
+    size: {
+      control: { type: 'select' },
+      options: ['sm', 'md', 'lg'],
+    },
+  },
+}
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Primary: Story = {
+  args: {
+    variant: 'primary',
+    children: 'Primary Button',
+  },
+}
+```
+description:
+globs:
+alwaysApply: false
+---
