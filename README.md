@@ -56,6 +56,45 @@ yarn install
 pnpm install
 ```
 
+### Supabase 설정 (선택사항)
+
+디자인 시스템을 저장하고 공유하려면 Supabase를 설정해야 합니다. Supabase 없이도 기본 기능은 사용 가능합니다.
+
+#### 1. Supabase 프로젝트 생성
+1. [Supabase Dashboard](https://supabase.com/dashboard)에서 새 프로젝트 생성
+2. 프로젝트 설정 > API에서 URL과 anon key 확인
+
+#### 2. 환경변수 설정
+`.env.local` 파일에서 다음 설정을 수정:
+
+```bash
+# 현재 (시뮬레이션 모드)
+NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+
+# 실제 Supabase 사용 시
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.your-actual-anon-key
+```
+
+#### 3. 데이터베이스 테이블 생성
+Supabase Dashboard > SQL Editor에서 `supabase/migrations/20240101000000_create_design_systems_tables.sql` 파일의 내용을 실행하여 필요한 테이블들을 생성합니다.
+
+#### 4. 로컬 Supabase 사용 (선택사항)
+Docker를 사용하여 로컬에서 Supabase를 실행할 수도 있습니다:
+
+```bash
+# Supabase CLI 설치
+npm install -g supabase
+
+# 로컬 Supabase 시작
+supabase start
+
+# 환경변수를 로컬 설정으로 변경
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.local-anon-key
+```
+
 ### 개발 서버 실행
 
 ```bash
@@ -67,6 +106,8 @@ pnpm dev
 ```
 
 [http://localhost:3000](http://localhost:3000)을 브라우저에서 열어 결과를 확인하세요.
+
+> **참고**: Supabase가 설정되지 않은 경우에도 모든 기능이 시뮬레이션 모드로 작동합니다. 실제 데이터는 저장되지 않지만 UI와 기능을 모두 테스트할 수 있습니다.
 
 ## 사용법
 

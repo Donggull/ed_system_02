@@ -3,37 +3,104 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
 
-// Supabase가 설정되지 않은 경우 null을 반환하는 더미 클라이언트 생성
+// 더미 클라이언트 생성 함수
+const createDummyClient = () => ({
+  from: (table: string) => ({
+    insert: (data: any) => ({
+      select: (columns?: string) => ({
+        single: () => Promise.resolve({ 
+          data: null, 
+          error: { message: `Supabase not configured - attempted to insert into ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+        }),
+        // 배열 반환을 위한 체이닝
+        eq: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' } }) })
+      }),
+      // select 없이 바로 single
+      single: () => Promise.resolve({ 
+        data: null, 
+        error: { message: `Supabase not configured - attempted to insert into ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+      })
+    }),
+    select: (columns?: string) => ({
+      eq: (column: string, value: any) => ({
+        single: () => Promise.resolve({ 
+          data: null, 
+          error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+        }),
+        // 배열 반환
+        limit: (count: number) => Promise.resolve({ 
+          data: [], 
+          error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+        }),
+        order: (column: string, options?: any) => ({
+          limit: (count: number) => Promise.resolve({ 
+            data: [], 
+            error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+          })
+        })
+      }),
+      order: (column: string, options?: any) => ({
+        limit: (count: number) => Promise.resolve({ 
+          data: [], 
+          error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+        })
+      }),
+      limit: (count: number) => Promise.resolve({ 
+        data: [], 
+        error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+      }),
+      single: () => Promise.resolve({ 
+        data: null, 
+        error: { message: `Supabase not configured - attempted to select from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+      })
+    }),
+    update: (data: any) => ({
+      eq: (column: string, value: any) => Promise.resolve({ 
+        data: null, 
+        error: { message: `Supabase not configured - attempted to update ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+      })
+    }),
+    delete: () => ({
+      eq: (column: string, value: any) => Promise.resolve({ 
+        data: null, 
+        error: { message: `Supabase not configured - attempted to delete from ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+      })
+    }),
+    upsert: (data: any) => Promise.resolve({ 
+      data: null, 
+      error: { message: `Supabase not configured - attempted to upsert into ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
+    })
+  }),
+  rpc: (fn: string, params?: any) => Promise.resolve({ 
+    data: null, 
+    error: { message: `Supabase not configured - attempted to call function ${fn}`, code: 'SUPABASE_NOT_CONFIGURED' }
+  })
+})
+
+// Supabase 클라이언트 초기화
 export const supabase = (function() {
   try {
-    if (supabaseUrl === 'https://placeholder.supabase.co') {
-      // 더미 클라이언트 반환
-      return {
-        from: () => ({
-          insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-          select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-          update: () => ({ eq: () => Promise.resolve({ error: new Error('Supabase not configured') }) }),
-          delete: () => ({ eq: () => Promise.resolve({ error: new Error('Supabase not configured') }) }),
-          upsert: () => Promise.resolve({ error: new Error('Supabase not configured') })
-        }),
-        rpc: () => Promise.resolve({ error: new Error('Supabase not configured') })
-      } as unknown as ReturnType<typeof createClient>
+    // 실제 Supabase URL이 설정되었는지 확인
+    if (supabaseUrl === 'https://placeholder.supabase.co' || 
+        supabaseAnonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder') {
+      console.info('🔄 Supabase not configured, using dummy client for development')
+      return createDummyClient() as unknown as ReturnType<typeof createClient>
     }
+
+    // 실제 Supabase 클라이언트 생성
+    console.info('✅ Supabase client initialized successfully')
     return createClient(supabaseUrl, supabaseAnonKey)
   } catch (error) {
-    console.warn('Supabase client initialization failed, using dummy client')
-    return {
-      from: () => ({
-        insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-        select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: new Error('Supabase not configured') }) }) }),
-        update: () => ({ eq: () => Promise.resolve({ error: new Error('Supabase not configured') }) }),
-        delete: () => ({ eq: () => Promise.resolve({ error: new Error('Supabase not configured') }) }),
-        upsert: () => Promise.resolve({ error: new Error('Supabase not configured') })
-      }),
-      rpc: () => Promise.resolve({ error: new Error('Supabase not configured') })
-    } as unknown as ReturnType<typeof createClient>
+    console.warn('⚠️ Supabase client initialization failed, using dummy client:', error)
+    return createDummyClient() as unknown as ReturnType<typeof createClient>
   }
 })()
+
+// Supabase 연결 상태 확인 함수
+export const isSupabaseConfigured = () => {
+  return supabaseUrl !== 'https://placeholder.supabase.co' && 
+         supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
+}
 
 export type Database = {
   public: {

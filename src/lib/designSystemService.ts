@@ -1,4 +1,4 @@
-import { supabase, type Database } from './supabase'
+import { supabase, isSupabaseConfigured, type Database } from './supabase'
 
 export type DesignSystem = Database['public']['Tables']['design_systems']['Row']
 export type Component = Database['public']['Tables']['components']['Row']
@@ -25,11 +25,15 @@ export interface DesignSystemWithDetails extends DesignSystem {
 class DesignSystemService {
   async saveDesignSystem(data: DesignSystemData, userId: string): Promise<string> {
     try {
-      // 임시 처리: 실제 Supabase 연결 없이 시뮬레이션
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || 
-          process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co') {
-        console.log('Simulating save design system:', data)
-        return 'temp-design-system-id-' + Date.now()
+      // Supabase가 설정되지 않은 경우 시뮬레이션
+      if (!isSupabaseConfigured()) {
+        console.info('📝 Simulating design system save (Supabase not configured):', {
+          name: data.name,
+          userId,
+          componentsCount: data.components.length,
+          themesCount: data.themes.length
+        })
+        return 'sim-ds-' + Date.now()
       }
 
       // 디자인 시스템 생성
@@ -195,9 +199,8 @@ class DesignSystemService {
 
   async getDesignSystem(id: string, userId?: string): Promise<DesignSystemWithDetails | null> {
     try {
-      // 임시 처리: 실제 Supabase 연결 없이 시뮬레이션
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || 
-          process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co') {
+      // Supabase가 설정되지 않은 경우 시뮬레이션
+      if (!isSupabaseConfigured()) {
         return {
           id,
           user_id: userId || 'temp-user-id',
@@ -293,9 +296,9 @@ class DesignSystemService {
 
   async getUserDesignSystems(userId: string): Promise<DesignSystem[]> {
     try {
-      // 임시 처리: 실제 Supabase 연결 없이 시뮬레이션
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || 
-          process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co') {
+      // Supabase가 설정되지 않은 경우 시뮬레이션
+      if (!isSupabaseConfigured()) {
+        console.info('📋 Simulating user design systems fetch (Supabase not configured)')
         return []
       }
 
@@ -465,6 +468,11 @@ class DesignSystemService {
 
   async getDesignSystemByShareToken(shareToken: string): Promise<DesignSystemWithDetails | null> {
     try {
+      // Supabase가 설정되지 않은 경우 시뮬레이션
+      if (!isSupabaseConfigured()) {
+        console.info('🔗 Simulating shared design system fetch (Supabase not configured)')
+        return null
+      }
       const { data: designSystem, error: dsError } = await supabase
         .from('design_systems')
         .select('*')
