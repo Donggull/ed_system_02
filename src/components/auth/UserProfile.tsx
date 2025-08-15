@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/Button'
-import { Avatar } from '@/components/ui/Avatar'
+import Button from '@/components/ui/Button'
+import Avatar from '@/components/ui/Avatar'
 import { LogOut, User, Settings } from 'lucide-react'
 
 interface UserProfileProps {

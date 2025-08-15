@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/Button'
+import Button from '@/components/ui/Button'
 import { AuthModal } from './AuthModal'
 import { UserProfile } from './UserProfile'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export function AuthButton() {
   const { user, loading } = useAuth()
