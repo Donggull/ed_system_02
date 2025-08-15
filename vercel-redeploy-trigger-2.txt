@@ -1,0 +1,8 @@
+Vercel environment variables configuration trigger
+Timestamp: 2025-08-15T12:45:00Z
+
+This commit will trigger a new deployment after environment variables are set.
+- NEXT_PUBLIC_SUPABASE_URL should be configured
+- NEXT_PUBLIC_SUPABASE_ANON_KEY should be configured
+
+After deployment, the Supabase authentication should work properly.
