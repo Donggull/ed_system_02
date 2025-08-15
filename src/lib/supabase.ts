@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
+// 임시 해결책: 환경 변수가 없을 때 실제 값 사용
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://nktjoldoylvwtkzboyaf.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rdGpvbGRveWx2d3RremJveWFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ2MDcyMzgsImV4cCI6MjA1MDE4MzIzOH0.vnG_0qGVYl2cdfCg2YbH4QKX6CGXqJz__8QAb6VVYjM'
 
 // 더미 클라이언트 생성 함수
 const createDummyClient = () => ({
