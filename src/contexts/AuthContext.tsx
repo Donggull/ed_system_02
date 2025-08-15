@@ -31,20 +31,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function getInitialSession() {
       try {
+        // Supabase가 설정되지 않은 경우 조기 종료
+        if (!supabase || typeof supabase.auth?.getSession !== 'function') {
+          console.warn('Supabase not properly initialized')
+          if (mounted) {
+            setLoading(false)
+          }
+          return
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (mounted) {
           if (error) {
             console.error('Error getting session:', error)
+            setSession(null)
+            setUser(null)
+            setProfile(null)
           } else {
             setSession(session)
             setUser(session?.user ?? null)
+            
+            // 사용자가 있고 실제 Supabase가 설정된 경우에만 프로필 생성
+            if (session?.user && typeof userService.ensureUserProfile === 'function') {
+              try {
+                const { data: userProfile } = await userService.ensureUserProfile(session.user)
+                setProfile(userProfile)
+              } catch (profileError) {
+                console.warn('Error ensuring user profile:', profileError)
+                setProfile(null)
+              }
+            }
           }
           setLoading(false)
         }
       } catch (error) {
         console.error('Error during session initialization:', error)
         if (mounted) {
+          setSession(null)
+          setUser(null)
+          setProfile(null)
           setLoading(false)
         }
       }
@@ -52,29 +78,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        console.log('Auth state changed:', event, session?.user?.email)
-        
-        if (mounted) {
-          setSession(session)
-          setUser(session?.user ?? null)
-          
-          if (session?.user) {
-            const { data: userProfile } = await userService.ensureUserProfile(session.user)
-            setProfile(userProfile)
-          } else {
-            setProfile(null)
+    // Supabase auth state change listener 설정
+    let subscription: any = null
+    try {
+      if (supabase && typeof supabase.auth?.onAuthStateChange === 'function') {
+        const { data } = supabase.auth.onAuthStateChange(
+          async (event: AuthChangeEvent, session: Session | null) => {
+            console.log('Auth state changed:', event, session?.user?.email)
+            
+            if (mounted) {
+              setSession(session)
+              setUser(session?.user ?? null)
+              
+              if (session?.user && typeof userService.ensureUserProfile === 'function') {
+                try {
+                  const { data: userProfile } = await userService.ensureUserProfile(session.user)
+                  setProfile(userProfile)
+                } catch (profileError) {
+                  console.warn('Error ensuring user profile:', profileError)
+                  setProfile(null)
+                }
+              } else {
+                setProfile(null)
+              }
+              
+              setLoading(false)
+            }
           }
-          
-          setLoading(false)
-        }
+        )
+        subscription = data.subscription
       }
-    )
+    } catch (error) {
+      console.error('Error setting up auth state listener:', error)
+    }
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe()
+      }
     }
   }, [])
 

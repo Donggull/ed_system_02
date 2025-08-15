@@ -71,6 +71,38 @@ const createDummyClient = () => ({
       error: { message: `Supabase not configured - attempted to upsert into ${table}`, code: 'SUPABASE_NOT_CONFIGURED' }
     })
   }),
+  auth: {
+    getSession: () => Promise.resolve({ 
+      data: { session: null }, 
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    }),
+    onAuthStateChange: (callback: any) => ({
+      data: {
+        subscription: {
+          unsubscribe: () => {}
+        }
+      }
+    }),
+    signUp: (options: any) => Promise.resolve({
+      data: null,
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    }),
+    signInWithPassword: (options: any) => Promise.resolve({
+      data: null,
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    }),
+    signOut: () => Promise.resolve({
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    }),
+    resetPasswordForEmail: (email: string, options?: any) => Promise.resolve({
+      data: null,
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    }),
+    updateUser: (attributes: any) => Promise.resolve({
+      data: null,
+      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+    })
+  },
   rpc: (fn: string, params?: any) => Promise.resolve({ 
     data: null, 
     error: { message: `Supabase not configured - attempted to call function ${fn}`, code: 'SUPABASE_NOT_CONFIGURED' }
@@ -80,24 +112,39 @@ const createDummyClient = () => ({
 // Supabase 클라이언트 초기화
 export const supabase = (function() {
   try {
-    console.info('🔍 Supabase 설정 확인:', {
-      url: supabaseUrl,
-      hasValidKey: supabaseAnonKey.length > 50,
-      isPlaceholder: supabaseUrl === 'https://placeholder.supabase.co'
-    });
+    // 브라우저 환경에서만 로그 출력
+    if (typeof window !== 'undefined') {
+      console.info('🔍 Supabase 설정 확인:', {
+        url: supabaseUrl,
+        hasValidKey: supabaseAnonKey.length > 50,
+        isPlaceholder: supabaseUrl === 'https://placeholder.supabase.co'
+      });
+    }
     
     // 실제 Supabase URL이 설정되었는지 확인
     if (supabaseUrl === 'https://placeholder.supabase.co' || 
         supabaseAnonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder') {
-      console.info('🔄 Supabase not configured, using dummy client for development')
+      if (typeof window !== 'undefined') {
+        console.info('🔄 Supabase not configured, using dummy client for development')
+      }
       return createDummyClient() as unknown as ReturnType<typeof createClient>
     }
 
     // 실제 Supabase 클라이언트 생성
-    console.info('✅ Supabase client initialized successfully')
-    return createClient(supabaseUrl, supabaseAnonKey)
+    if (typeof window !== 'undefined') {
+      console.info('✅ Supabase client initialized successfully')
+    }
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false
+      }
+    })
   } catch (error) {
-    console.warn('⚠️ Supabase client initialization failed, using dummy client:', error)
+    if (typeof window !== 'undefined') {
+      console.warn('⚠️ Supabase client initialization failed, using dummy client:', error)
+    }
     return createDummyClient() as unknown as ReturnType<typeof createClient>
   }
 })()
