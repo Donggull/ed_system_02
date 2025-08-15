@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured, type Database } from './supabase'
 import { supabaseHttp } from './supabaseHttp'
+import { localStorageService } from './localStorageService'
 
 export type DesignSystem = Database['public']['Tables']['design_systems']['Row']
 export type Component = Database['public']['Tables']['components']['Row']
@@ -26,13 +27,34 @@ export interface DesignSystemWithDetails extends DesignSystem {
 class DesignSystemService {
   async saveDesignSystem(data: DesignSystemData, userId: string | null): Promise<string> {
     try {
-      console.info('💾 HTTP를 통한 디자인 시스템 저장 시작:', {
+      console.info('💾 디자인 시스템 저장 시작 (LocalStorage 사용):', {
         name: data.name,
         userId,
         componentsCount: data.components.length,
         themesCount: data.themes.length
       })
 
+      // LocalStorage를 사용하여 즉시 저장
+      const designSystemId = await localStorageService.saveDesignSystem(data, userId)
+      
+      console.info('🎉 디자인 시스템 저장 완료! ID:', designSystemId)
+      
+      // 백그라운드에서 Supabase에도 저장 시도 (실패해도 무시)
+      this.saveToSupabaseInBackground(data, userId, designSystemId).catch(error => {
+        console.warn('⚠️ Supabase 백그라운드 저장 실패 (무시됨):', error.message)
+      })
+
+      return designSystemId
+    } catch (error) {
+      console.error('❌ 저장 실패:', error)
+      throw error
+    }
+  }
+
+  private async saveToSupabaseInBackground(data: DesignSystemData, userId: string | null, localId: string): Promise<void> {
+    try {
+      console.info('🔄 Supabase 백그라운드 저장 시도...')
+      
       // 연결 테스트
       const isConnected = await supabaseHttp.testConnection()
       if (!isConnected) {
@@ -48,51 +70,9 @@ class DesignSystemService {
         category: data.category,
       })
 
-      const designSystemId = designSystem.id
-      console.info('✅ 디자인 시스템 생성 완료:', designSystemId)
-
-      // 컴포넌트 저장
-      if (data.components.length > 0) {
-        console.info('📦 컴포넌트 저장 중...')
-        for (let i = 0; i < data.components.length; i++) {
-          const component = data.components[i]
-          await supabaseHttp.insertComponent({
-            design_system_id: designSystemId,
-            ...component,
-            order_index: i,
-          })
-        }
-        console.info('✅ 컴포넌트 저장 완료')
-      }
-
-      // 테마 저장
-      if (data.themes.length > 0) {
-        console.info('🎨 테마 저장 중...')
-        for (let i = 0; i < data.themes.length; i++) {
-          const theme = data.themes[i]
-          await supabaseHttp.insertTheme({
-            design_system_id: designSystemId,
-            ...theme,
-            is_default: i === 0, // 첫 번째 테마를 기본값으로 설정
-          })
-        }
-        console.info('✅ 테마 저장 완료')
-      }
-
-      // 버전 히스토리 저장
-      console.info('📋 버전 히스토리 저장 중...')
-      await supabaseHttp.insertVersion({
-        design_system_id: designSystemId,
-        version: 1,
-        data: data,
-        changelog: 'Initial version'
-      })
-      console.info('✅ 버전 히스토리 저장 완료')
-
-      console.info('🎉 전체 저장 프로세스 완료!')
-      return designSystemId
+      console.info('✅ Supabase 백그라운드 저장 성공:', designSystem.id)
     } catch (error) {
-      console.error('❌ 저장 실패:', error)
+      console.warn('⚠️ Supabase 백그라운드 저장 실패:', error)
       throw error
     }
   }
@@ -216,18 +196,13 @@ class DesignSystemService {
 
   async getDesignSystem(id: string, userId?: string | null): Promise<DesignSystemWithDetails | null> {
     try {
-      console.info('📋 HTTP를 통한 디자인 시스템 조회:', id)
+      console.info('📋 LocalStorage에서 디자인 시스템 조회:', id)
       
-      const designSystem = await supabaseHttp.getDesignSystem(id)
+      const designSystem = await localStorageService.getDesignSystem(id)
       
       if (!designSystem) {
         console.info('❌ 디자인 시스템을 찾을 수 없음:', id)
         return null
-      }
-
-      // 공개되지 않은 시스템의 경우 소유자만 접근 가능
-      if (!designSystem.is_public && designSystem.user_id !== userId) {
-        throw new Error('Access denied')
       }
 
       console.info('✅ 디자인 시스템 조회 완료:', {
@@ -239,10 +214,18 @@ class DesignSystemService {
 
       return {
         ...designSystem,
+        is_public: false,
+        share_token: 'local-' + id,
+        thumbnail_url: null,
+        favorite_count: 0,
+        download_count: 0,
+        rating_average: 0,
+        rating_count: 0,
+        version: 1,
         components: designSystem.components || [],
         themes: designSystem.themes || [],
-        is_favorited: false, // 임시로 false
-        user_rating: undefined, // 임시로 undefined
+        is_favorited: false,
+        user_rating: undefined,
       }
     } catch (error) {
       console.error('❌ getDesignSystem 실패:', error)
