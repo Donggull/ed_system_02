@@ -50,10 +50,6 @@ export default function BrowseDesignSystems({ userId, onSelect }: BrowseDesignSy
     searchQuery: ''
   })
 
-  useEffect(() => {
-    fetchDesignSystems()
-  }, [fetchDesignSystems])
-
   const fetchDesignSystems = useCallback(async () => {
     setLoading(true)
     try {

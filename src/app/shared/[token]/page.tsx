@@ -18,12 +18,6 @@ export default function SharedDesignSystemPage() {
   const [showRatingModal, setShowRatingModal] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(0)
 
-  useEffect(() => {
-    if (token) {
-      fetchDesignSystem()
-    }
-  }, [token, fetchDesignSystem])
-
   const fetchDesignSystem = useCallback(async () => {
     try {
       const response = await fetch(`/api/design-systems/shared/${token}`)
@@ -46,6 +40,12 @@ export default function SharedDesignSystemPage() {
       setLoading(false)
     }
   }, [token])
+
+  useEffect(() => {
+    if (token) {
+      fetchDesignSystem()
+    }
+  }, [token, fetchDesignSystem])
 
   const handleRateSubmit = async (rating: number, comment: string) => {
     if (!designSystem) return
