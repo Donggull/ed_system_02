@@ -78,8 +78,17 @@ export function LoginForm({ onSuccess, onSwitchToSignUp }: LoginFormProps) {
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600 font-medium mb-2">로그인 오류</p>
               <p className="text-sm text-red-600">{error}</p>
+              {error.includes('SUPABASE_NOT_CONFIGURED') && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-xs text-yellow-800">
+                    <strong>해결 방법:</strong> Vercel 대시보드 → 프로젝트 설정 → Environment Variables에서 
+                    NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 설정해주세요.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

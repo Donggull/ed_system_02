@@ -85,22 +85,37 @@ const createDummyClient = () => ({
     }),
     signUp: (options: any) => Promise.resolve({
       data: null,
-      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+      error: { 
+        message: '🚨 Supabase 환경 변수가 설정되지 않았습니다. Vercel 대시보드에서 NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_ANON_KEY를 설정해주세요.', 
+        code: 'SUPABASE_NOT_CONFIGURED' 
+      }
     }),
     signInWithPassword: (options: any) => Promise.resolve({
       data: null,
-      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+      error: { 
+        message: '🚨 Supabase 환경 변수가 설정되지 않았습니다. Vercel 대시보드에서 환경 변수를 설정해주세요.', 
+        code: 'SUPABASE_NOT_CONFIGURED' 
+      }
     }),
     signOut: () => Promise.resolve({
-      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+      error: { 
+        message: '🚨 Supabase 환경 변수가 설정되지 않았습니다.', 
+        code: 'SUPABASE_NOT_CONFIGURED' 
+      }
     }),
     resetPasswordForEmail: (email: string, options?: any) => Promise.resolve({
       data: null,
-      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+      error: { 
+        message: '🚨 Supabase 환경 변수가 설정되지 않았습니다.', 
+        code: 'SUPABASE_NOT_CONFIGURED' 
+      }
     }),
     updateUser: (attributes: any) => Promise.resolve({
       data: null,
-      error: { message: 'Supabase not configured', code: 'SUPABASE_NOT_CONFIGURED' }
+      error: { 
+        message: '🚨 Supabase 환경 변수가 설정되지 않았습니다.', 
+        code: 'SUPABASE_NOT_CONFIGURED' 
+      }
     })
   },
   rpc: (fn: string, params?: any) => Promise.resolve({ 
@@ -112,38 +127,72 @@ const createDummyClient = () => ({
 // Supabase 클라이언트 초기화
 export const supabase = (function() {
   try {
+    // 환경 변수 상세 로깅
+    const debugInfo = {
+      url: supabaseUrl,
+      urlLength: supabaseUrl?.length || 0,
+      keyLength: supabaseAnonKey?.length || 0,
+      hasValidUrl: supabaseUrl && supabaseUrl !== 'https://placeholder.supabase.co',
+      hasValidKey: supabaseAnonKey && supabaseAnonKey !== 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder',
+      isPlaceholderUrl: supabaseUrl === 'https://placeholder.supabase.co',
+      isPlaceholderKey: supabaseAnonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder'
+    }
+
     // 브라우저 환경에서만 로그 출력
     if (typeof window !== 'undefined') {
-      console.info('🔍 Supabase 설정 확인:', {
-        url: supabaseUrl,
-        hasValidKey: supabaseAnonKey.length > 50,
-        isPlaceholder: supabaseUrl === 'https://placeholder.supabase.co'
-      });
+      console.group('🔍 Supabase 초기화 디버깅')
+      console.log('환경 변수 상태:', debugInfo)
+      console.log('실제 URL:', supabaseUrl)
+      console.log('실제 Key 앞 20자:', supabaseAnonKey?.substring(0, 20) + '...')
+      console.groupEnd()
     }
     
-    // 실제 Supabase URL이 설정되었는지 확인
+    // 환경 변수 유효성 검사
+    if (!supabaseUrl || !supabaseAnonKey) {
+      if (typeof window !== 'undefined') {
+        console.error('❌ Supabase 환경 변수가 설정되지 않았습니다!')
+        console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ 설정됨' : '❌ 미설정')
+        console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ 설정됨' : '❌ 미설정')
+      }
+      return createDummyClient() as unknown as ReturnType<typeof createClient>
+    }
+    
+    // 플레이스홀더 값 확인
     if (supabaseUrl === 'https://placeholder.supabase.co' || 
         supabaseAnonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder') {
       if (typeof window !== 'undefined') {
-        console.info('🔄 Supabase not configured, using dummy client for development')
+        console.warn('🔄 Supabase 플레이스홀더 값 감지, 더미 클라이언트 사용')
       }
       return createDummyClient() as unknown as ReturnType<typeof createClient>
     }
 
     // 실제 Supabase 클라이언트 생성
     if (typeof window !== 'undefined') {
-      console.info('✅ Supabase client initialized successfully')
+      console.info('✅ 실제 Supabase 클라이언트 생성 중...')
     }
-    return createClient(supabaseUrl, supabaseAnonKey, {
+    
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false
+        detectSessionInUrl: false,
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'ed-system-claude'
+        }
       }
     })
+
+    if (typeof window !== 'undefined') {
+      console.info('🎉 Supabase 클라이언트 초기화 완료!')
+    }
+
+    return client
   } catch (error) {
     if (typeof window !== 'undefined') {
-      console.warn('⚠️ Supabase client initialization failed, using dummy client:', error)
+      console.error('💥 Supabase 클라이언트 초기화 실패:', error)
     }
     return createDummyClient() as unknown as ReturnType<typeof createClient>
   }
