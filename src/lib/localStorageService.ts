@@ -23,6 +23,11 @@ export class LocalStorageService {
     try {
       console.info('💾 LocalStorage에 디자인 시스템 저장:', data.name)
       
+      // LocalStorage 사용 가능 여부 체크
+      if (!this.isLocalStorageAvailable()) {
+        throw new Error('LocalStorage를 사용할 수 없습니다. 브라우저 설정을 확인해주세요.')
+      }
+      
       const id = 'ds-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9)
       const now = new Date().toISOString()
       
@@ -42,13 +47,35 @@ export class LocalStorageService {
       const existing = this.getAllDesignSystems()
       existing.push(designSystem)
       
-      localStorage.setItem(this.storageKey, JSON.stringify(existing))
+      try {
+        const serialized = JSON.stringify(existing)
+        localStorage.setItem(this.storageKey, serialized)
+      } catch (storageError) {
+        // 저장소 용량 초과 등의 문제 처리
+        console.warn('LocalStorage 저장 실패, 이전 데이터 정리 후 재시도:', storageError)
+        
+        // 가장 오래된 항목들을 제거하고 재시도
+        const reduced = existing.slice(-10) // 최근 10개만 유지
+        reduced.push(designSystem)
+        localStorage.setItem(this.storageKey, JSON.stringify(reduced))
+      }
       
       console.info('✅ LocalStorage 저장 완료:', id)
       return id
     } catch (error) {
       console.error('❌ LocalStorage 저장 실패:', error)
-      throw error
+      throw new Error(`로컬 저장에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
+    }
+  }
+
+  private isLocalStorageAvailable(): boolean {
+    try {
+      const test = '__localStorage_test__'
+      localStorage.setItem(test, test)
+      localStorage.removeItem(test)
+      return true
+    } catch {
+      return false
     }
   }
 

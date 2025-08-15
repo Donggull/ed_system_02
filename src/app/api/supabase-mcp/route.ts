@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       // INSERT 쿼리 파싱 및 REST API 호출로 변환
       const values = query.match(/VALUES\s*\(([^)]+)\)/)?.[1]
       if (values) {
-        const [user_id, name, description, category, tags] = values.split(',').map(v => v.trim().replace(/'/g, ''))
+        const [user_id, name, description, category, tags] = values.split(',').map((v: string) => v.trim().replace(/'/g, ''))
         
         const data = {
           user_id: user_id === 'NULL' ? null : user_id,

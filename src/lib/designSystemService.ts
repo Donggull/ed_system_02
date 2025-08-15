@@ -26,37 +26,51 @@ export interface DesignSystemWithDetails extends DesignSystem {
 
 class DesignSystemService {
   async saveDesignSystem(data: DesignSystemData, userId: string | null): Promise<string> {
-    try {
-      console.info('💾 디자인 시스템 저장 시작 (LocalStorage 사용):', {
-        name: data.name,
-        userId,
-        componentsCount: data.components.length,
-        themesCount: data.themes.length
-      })
+    console.info('💾 디자인 시스템 저장 시작 (LocalStorage 우선):', {
+      name: data.name,
+      userId,
+      componentsCount: data.components.length,
+      themesCount: data.themes.length
+    })
 
-      // LocalStorage를 사용하여 즉시 저장
+    try {
+      // LocalStorage를 사용하여 즉시 저장 (항상 성공)
       const designSystemId = await localStorageService.saveDesignSystem(data, userId)
       
-      console.info('🎉 디자인 시스템 저장 완료! ID:', designSystemId)
+      console.info('✅ LocalStorage 저장 완료! ID:', designSystemId)
       
       // 백그라운드에서 Supabase에도 저장 시도 (실패해도 무시)
-      this.saveToSupabaseInBackground(data, userId, designSystemId).catch(error => {
-        console.warn('⚠️ Supabase 백그라운드 저장 실패 (무시됨):', error.message)
-      })
+      // setTimeout을 사용하여 완전히 분리된 비동기 작업으로 처리
+      setTimeout(() => {
+        this.saveToSupabaseInBackground(data, userId, designSystemId)
+          .then(() => {
+            console.info('✅ Supabase 백그라운드 저장 성공')
+          })
+          .catch(error => {
+            console.warn('⚠️ Supabase 백그라운드 저장 실패 (무시됨):', error.message)
+          })
+      }, 0)
 
+      console.info('🎉 디자인 시스템 저장 완료! (LocalStorage)')
       return designSystemId
     } catch (error) {
-      console.error('❌ 저장 실패:', error)
-      throw error
+      console.error('❌ LocalStorage 저장 실패:', error)
+      throw new Error('디자인 시스템 저장에 실패했습니다. 브라우저 저장소에 문제가 있을 수 있습니다.')
     }
   }
 
   private async saveToSupabaseInBackground(data: DesignSystemData, userId: string | null, localId: string): Promise<void> {
+    console.info('🔄 Supabase 백그라운드 저장 시도...')
+    
     try {
-      console.info('🔄 Supabase 백그라운드 저장 시도...')
+      // 빠른 연결 테스트 (타임아웃 5초)
+      const connectionPromise = supabaseHttp.testConnection()
+      const timeoutPromise = new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('연결 테스트 타임아웃')), 5000)
+      )
       
-      // 연결 테스트
-      const isConnected = await supabaseHttp.testConnection()
+      const isConnected = await Promise.race([connectionPromise, timeoutPromise])
+      
       if (!isConnected) {
         throw new Error('Supabase 연결 실패')
       }
@@ -70,10 +84,38 @@ class DesignSystemService {
         category: data.category,
       })
 
-      console.info('✅ Supabase 백그라운드 저장 성공:', designSystem.id)
+      // 컴포넌트들 저장
+      if (data.components && data.components.length > 0) {
+        for (let i = 0; i < data.components.length; i++) {
+          const component = data.components[i]
+          await supabaseHttp.insertComponent({
+            design_system_id: designSystem.id,
+            ...component,
+            order_index: i,
+          })
+        }
+      }
+
+      // 테마들 저장
+      if (data.themes && data.themes.length > 0) {
+        for (let i = 0; i < data.themes.length; i++) {
+          const theme = data.themes[i]
+          await supabaseHttp.insertTheme({
+            design_system_id: designSystem.id,
+            ...theme,
+            is_default: i === 0,
+          })
+        }
+      }
+
+      console.info('✅ Supabase 백그라운드 저장 완료:', {
+        designSystemId: designSystem.id,
+        componentsCount: data.components.length,
+        themesCount: data.themes.length
+      })
     } catch (error) {
-      console.warn('⚠️ Supabase 백그라운드 저장 실패:', error)
-      throw error
+      console.warn('⚠️ Supabase 백그라운드 저장 실패:', error instanceof Error ? error.message : error)
+      // 에러를 다시 throw하지 않음 - 백그라운드 작업이므로 실패해도 무시
     }
   }
 
