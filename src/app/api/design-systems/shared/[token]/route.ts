@@ -3,10 +3,11 @@ import { designSystemService } from '@/lib/designSystemService'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const designSystem = await designSystemService.getDesignSystemByShareToken(params.token)
+    const resolvedParams = await params
+    const designSystem = await designSystemService.getDesignSystemByShareToken(resolvedParams.token)
 
     if (!designSystem) {
       return NextResponse.json(

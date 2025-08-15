@@ -3,13 +3,14 @@ import { designSystemService } from '@/lib/designSystemService'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || undefined
 
-    const designSystem = await designSystemService.getDesignSystem(params.id, userId)
+    const designSystem = await designSystemService.getDesignSystem(resolvedParams.id, userId)
 
     if (!designSystem) {
       return NextResponse.json(
@@ -30,9 +31,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const body = await request.json()
     const { userId, designSystemData, changelog } = body
 
@@ -44,7 +46,7 @@ export async function PUT(
     }
 
     await designSystemService.updateDesignSystem(
-      params.id,
+      resolvedParams.id,
       designSystemData,
       userId,
       changelog
@@ -62,9 +64,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
@@ -75,7 +78,7 @@ export async function DELETE(
       )
     }
 
-    await designSystemService.deleteDesignSystem(params.id, userId)
+    await designSystemService.deleteDesignSystem(resolvedParams.id, userId)
 
     return NextResponse.json({ success: true })
   } catch (error) {

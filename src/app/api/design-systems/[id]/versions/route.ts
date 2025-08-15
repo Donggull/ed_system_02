@@ -3,13 +3,14 @@ import { designSystemService } from '@/lib/designSystemService'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId') || undefined
 
-    const versions = await designSystemService.getVersionHistory(params.id, userId)
+    const versions = await designSystemService.getVersionHistory(resolvedParams.id, userId)
 
     return NextResponse.json(versions)
   } catch (error) {

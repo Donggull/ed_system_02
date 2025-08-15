@@ -3,9 +3,10 @@ import { designSystemService } from '@/lib/designSystemService'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params
     const body = await request.json()
     const { userId } = body
 
@@ -16,7 +17,7 @@ export async function POST(
       )
     }
 
-    const isFavorited = await designSystemService.toggleFavorite(params.id, userId)
+    const isFavorited = await designSystemService.toggleFavorite(resolvedParams.id, userId)
 
     return NextResponse.json({ isFavorited })
   } catch (error) {
