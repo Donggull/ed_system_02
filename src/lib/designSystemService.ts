@@ -326,10 +326,114 @@ class DesignSystemService {
     sortBy: 'created_at' | 'updated_at' | 'rating_average' | 'download_count' = 'updated_at'
   ): Promise<{ systems: DesignSystem[]; total: number }> {
     try {
-      // 임시 처리: 실제 Supabase 연결 없이 시뮬레이션
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || 
-          process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co') {
-        return { systems: [], total: 0 }
+      // Supabase가 설정되지 않은 경우 시뮬레이션 데이터 반환
+      if (!isSupabaseConfigured()) {
+        console.info('🌐 Simulating public design systems fetch (Supabase not configured)')
+        
+        // 시뮬레이션 데이터
+        const sampleSystems: DesignSystem[] = [
+          {
+            id: 'sample-1',
+            user_id: 'user-1',
+            name: 'Modern E-commerce UI',
+            description: '현대적인 이커머스 사이트를 위한 완전한 디자인 시스템입니다.',
+            is_public: true,
+            share_token: 'sample-token-1',
+            thumbnail_url: null,
+            tags: ['e-commerce', 'modern', 'responsive'],
+            category: 'E-commerce',
+            favorite_count: 24,
+            download_count: 156,
+            rating_average: 4.8,
+            rating_count: 12,
+            version: 1,
+            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 'sample-2',
+            user_id: 'user-2',
+            name: 'Dashboard Pro',
+            description: '관리자 대시보드를 위한 프로페셔널 컴포넌트 라이브러리',
+            is_public: true,
+            share_token: 'sample-token-2',
+            thumbnail_url: null,
+            tags: ['dashboard', 'admin', 'charts'],
+            category: 'Dashboard',
+            favorite_count: 18,
+            download_count: 89,
+            rating_average: 4.5,
+            rating_count: 8,
+            version: 2,
+            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 'sample-3',
+            user_id: 'user-3',
+            name: 'Mobile First Components',
+            description: '모바일 우선 접근 방식으로 설계된 반응형 컴포넌트',
+            is_public: true,
+            share_token: 'sample-token-3',
+            thumbnail_url: null,
+            tags: ['mobile', 'responsive', 'touch'],
+            category: 'Mobile App',
+            favorite_count: 31,
+            download_count: 203,
+            rating_average: 4.9,
+            rating_count: 15,
+            version: 1,
+            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ]
+
+        // 필터링 적용
+        let filteredSystems = sampleSystems
+
+        if (category && category !== 'All') {
+          filteredSystems = filteredSystems.filter(system => system.category === category)
+        }
+
+        if (tags && tags.length > 0) {
+          filteredSystems = filteredSystems.filter(system => 
+            system.tags && tags.some(tag => system.tags!.includes(tag))
+          )
+        }
+
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase()
+          filteredSystems = filteredSystems.filter(system =>
+            system.name.toLowerCase().includes(query) ||
+            (system.description && system.description.toLowerCase().includes(query))
+          )
+        }
+
+        // 정렬 적용
+        filteredSystems.sort((a, b) => {
+          switch (sortBy) {
+            case 'created_at':
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            case 'updated_at':
+              return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            case 'rating_average':
+              return b.rating_average - a.rating_average
+            case 'download_count':
+              return b.download_count - a.download_count
+            default:
+              return 0
+          }
+        })
+
+        // 페이징 적용
+        const startIndex = (page - 1) * limit
+        const endIndex = startIndex + limit
+        const paginatedSystems = filteredSystems.slice(startIndex, endIndex)
+
+        return {
+          systems: paginatedSystems,
+          total: filteredSystems.length
+        }
       }
 
       let query = supabase
@@ -471,6 +575,84 @@ class DesignSystemService {
       // Supabase가 설정되지 않은 경우 시뮬레이션
       if (!isSupabaseConfigured()) {
         console.info('🔗 Simulating shared design system fetch (Supabase not configured)')
+        
+        // 시뮬레이션 데이터 반환
+        if (shareToken.startsWith('sample-token')) {
+          const sampleSystem: DesignSystemWithDetails = {
+            id: 'sample-1',
+            user_id: 'user-1',
+            name: 'Modern E-commerce UI',
+            description: '현대적인 이커머스 사이트를 위한 완전한 디자인 시스템입니다. 반응형 디자인과 접근성을 고려하여 설계되었습니다.',
+            is_public: true,
+            share_token: shareToken,
+            thumbnail_url: null,
+            tags: ['e-commerce', 'modern', 'responsive', 'accessible'],
+            category: 'E-commerce',
+            favorite_count: 24,
+            download_count: 156,
+            rating_average: 4.8,
+            rating_count: 12,
+            version: 1,
+            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            components: [
+              {
+                id: 'comp-1',
+                design_system_id: 'sample-1',
+                name: 'Primary Button',
+                type: 'button',
+                props: { variant: 'primary', size: 'medium' },
+                styles: { backgroundColor: '#3B82F6', color: '#FFFFFF' },
+                code: null,
+                preview_url: null,
+                order_index: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              {
+                id: 'comp-2',
+                design_system_id: 'sample-1',
+                name: 'Product Card',
+                type: 'card',
+                props: { elevation: 2, rounded: true },
+                styles: { padding: '1rem', borderRadius: '0.5rem' },
+                code: null,
+                preview_url: null,
+                order_index: 1,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ],
+            themes: [
+              {
+                id: 'theme-1',
+                design_system_id: 'sample-1',
+                name: 'Default Theme',
+                colors: {
+                  primary: '#3B82F6',
+                  secondary: '#64748B',
+                  background: '#FFFFFF',
+                  foreground: '#0F172A',
+                  muted: '#F1F5F9',
+                  accent: '#8B5CF6'
+                },
+                typography: {
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: { base: '1rem', lg: '1.125rem' }
+                },
+                spacing: {
+                  sm: '0.5rem',
+                  md: '1rem',
+                  lg: '1.5rem'
+                },
+                is_default: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ]
+          }
+          return sampleSystem
+        }
         return null
       }
       const { data: designSystem, error: dsError } = await supabase
