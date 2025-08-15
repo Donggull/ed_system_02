@@ -20,7 +20,12 @@
       "Bash(mkdir:*)",
       "Bash(claude mcp:*)",
       "mcp__supabase-mcp__list_tables",
-      "mcp__supabase-mcp__execute_sql"
+      "mcp__supabase-mcp__execute_sql",
+      "Bash(rm:*)",
+      "Bash(powershell:*)",
+      "Bash(npx next dev:*)",
+      "Bash(node:*)",
+      "mcp__supabase-mcp__search_docs"
     ],
     "deny": [],
     "ask": []

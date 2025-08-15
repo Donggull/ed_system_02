@@ -80,6 +80,12 @@ const createDummyClient = () => ({
 // Supabase 클라이언트 초기화
 export const supabase = (function() {
   try {
+    console.info('🔍 Supabase 설정 확인:', {
+      url: supabaseUrl,
+      hasValidKey: supabaseAnonKey.length > 50,
+      isPlaceholder: supabaseUrl === 'https://placeholder.supabase.co'
+    });
+    
     // 실제 Supabase URL이 설정되었는지 확인
     if (supabaseUrl === 'https://placeholder.supabase.co' || 
         supabaseAnonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder') {

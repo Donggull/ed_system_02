@@ -44,6 +44,8 @@ function HomeContent() {
     category: string
   }) => {
     try {
+      console.log('🚀 저장 프로세스 시작:', saveData);
+      
       // 임시 사용자 ID - Supabase auth 미구현으로 인해 null로 설정
       const userId = null
       
@@ -70,15 +72,24 @@ function HomeContent() {
         }]
       }
 
+      console.log('📊 저장할 데이터:', {
+        name: designSystemData.name,
+        componentsCount: designSystemData.components.length,
+        themesCount: designSystemData.themes.length
+      });
+
       const designSystemId = await designSystemService.saveDesignSystem(designSystemData, userId)
+      console.log('✅ 디자인 시스템 저장 완료, ID:', designSystemId);
       
       // 저장된 디자인 시스템 정보 가져오기
       const savedSystem = await designSystemService.getDesignSystem(designSystemId, userId)
       setSavedDesignSystem(savedSystem)
       
+      console.log('🎉 전체 저장 프로세스 완료');
       alert('디자인 시스템이 성공적으로 저장되었습니다!')
     } catch (error) {
-      console.error('저장 실패:', error)
+      console.error('❌ 저장 실패:', error)
+      alert(`저장에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
       throw error
     }
   }
