@@ -1,335 +1,272 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { DesignSystemService, DesignSystemWithDetails } from '@/lib/designSystemService'
-import { DesignSystemTheme } from '@/contexts/DesignSystemContext'
-import Button from '@/components/ui/Button'
+import { Heart, Download, Star, Calendar, User, Share2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { DesignSystemWithDetails } from '@/lib/designSystemService'
+import ComponentPreviewEnhanced from '@/components/design-system/ComponentPreviewEnhanced'
+import RatingModal from '@/components/design-system/RatingModal'
 
 export default function SharedDesignSystemPage() {
   const params = useParams()
-  const token = params?.token as string
-  const [system, setSystem] = useState<DesignSystemWithDetails | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const token = params.token as string
+  
+  const [designSystem, setDesignSystem] = useState<DesignSystemWithDetails | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState(0)
 
   useEffect(() => {
     if (token) {
-      loadSharedSystem()
+      fetchDesignSystem()
     }
   }, [token])
 
-  const loadSharedSystem = async () => {
+  const fetchDesignSystem = async () => {
     try {
-      setIsLoading(true)
-      const sharedSystem = await DesignSystemService.getSharedDesignSystem(token)
-      setSystem(sharedSystem)
-    } catch (error: any) {
-      console.error('Failed to load shared system:', error)
-      setError(error.message || '공유된 디자인 시스템을 찾을 수 없습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleDownload = async () => {
-    if (!system) return
-
-    try {
-      // Record download
-      await DesignSystemService.recordDownload(system.id, 'full')
+      const response = await fetch(`/api/design-systems/shared/${token}`)
       
-      // Create downloadable JSON
-      const downloadData = {
-        name: system.name,
-        description: system.description,
-        theme: system.theme_data,
-        selectedComponents: system.selected_components,
-        componentSettings: system.component_settings,
-        tags: system.tags,
-        category: system.category,
-        exportedAt: new Date().toISOString(),
-        originalAuthor: system.user_id,
-        sharedFrom: window.location.href
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('디자인 시스템을 찾을 수 없습니다.')
+        } else {
+          setError('디자인 시스템을 불러오는데 실패했습니다.')
+        }
+        return
       }
-      
-      const blob = new Blob([JSON.stringify(downloadData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${system.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_design_system.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+
+      const data = await response.json()
+      setDesignSystem(data)
     } catch (error) {
-      console.error('Failed to download system:', error)
-      alert('다운로드에 실패했습니다.')
+      console.error('Error fetching design system:', error)
+      setError('디자인 시스템을 불러오는데 실패했습니다.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleCopyTheme = async () => {
-    if (!system) return
+  const handleRateSubmit = async (rating: number, comment: string) => {
+    if (!designSystem) return
 
     try {
-      const themeJson = JSON.stringify(system.theme_data, null, 2)
-      await navigator.clipboard.writeText(themeJson)
-      alert('테마 데이터가 클립보드에 복사되었습니다!')
+      const response = await fetch(`/api/design-systems/${designSystem.id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'anonymous', // 익명 사용자로 처리하거나 로그인 시스템과 연동
+          rating,
+          comment
+        })
+      })
+
+      if (response.ok) {
+        await fetchDesignSystem() // 새로고침해서 업데이트된 평점 반영
+      }
     } catch (error) {
-      console.error('Failed to copy theme:', error)
-      alert('복사에 실패했습니다.')
+      console.error('평점 저장 실패:', error)
+      throw error
     }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR')
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
   }
 
-  if (isLoading) {
+  const shareDesignSystem = async () => {
+    try {
+      await navigator.share({
+        title: designSystem?.name,
+        text: designSystem?.description || '',
+        url: window.location.href
+      })
+    } catch (error) {
+      // Web Share API를 지원하지 않는 경우 클립보드에 복사
+      await navigator.clipboard.writeText(window.location.href)
+      alert('링크가 클립보드에 복사되었습니다!')
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-          <p className="text-muted-foreground mt-4">공유된 디자인 시스템을 불러오는 중...</p>
-          <p className="text-sm text-muted-foreground mt-2">잠시만 기다려주세요.</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">디자인 시스템을 불러오는 중...</p>
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !designSystem) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-4">
-          <div className="text-6xl mb-4">❌</div>
-          <h1 className="text-2xl font-bold mb-2">접근할 수 없음</h1>
-          <p className="text-muted-foreground mb-6">{error}</p>
-          
-          {/* 에러 타입별 추가 정보 */}
-          {error.includes('데이터베이스 연결') && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
-              <p className="text-sm text-yellow-800">
-                <strong>문제:</strong> 데이터베이스 연결이 설정되지 않았습니다.
-              </p>
-              <p className="text-sm text-yellow-800 mt-2">
-                <strong>해결방법:</strong> 환경 변수 파일(.env.local)에 Supabase 연결 정보를 설정하세요.
-              </p>
-            </div>
-          )}
-          
-          {error.includes('공유 링크를 찾을 수 없습니다') && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
-              <p className="text-sm text-blue-800">
-                <strong>문제:</strong> 잘못된 공유 링크입니다.
-              </p>
-              <p className="text-sm text-blue-800 mt-2">
-                <strong>해결방법:</strong> 올바른 공유 링크를 확인하거나 링크 제공자에게 문의하세요.
-              </p>
-            </div>
-          )}
-          
-          <Link href="/">
-            <Button>홈으로 돌아가기</Button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">😔</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {error || '디자인 시스템을 찾을 수 없습니다'}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            링크가 올바른지 확인해주세요.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          >
+            <ArrowLeft size={16} />
+            홈으로 돌아가기
           </Link>
         </div>
       </div>
     )
   }
 
-  if (!system) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">디자인 시스템을 찾을 수 없습니다.</p>
-        </div>
-      </div>
-    )
-  }
-
-  const theme = system.theme_data as unknown as DesignSystemTheme
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">{system.name}</h1>
-              <p className="text-muted-foreground">공유된 디자인 시스템</p>
-            </div>
-            <div className="flex space-x-3">
-              <Link href="/">
-                <Button variant="outline">홈으로</Button>
-              </Link>
-              <Button variant="outline" onClick={handleCopyTheme}>
-                테마 복사
-              </Button>
-              <Button onClick={handleDownload}>
-                다운로드
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* System Info */}
-          <div className="lg:col-span-1">
-            <div className="border border-border rounded-lg p-6 space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold mb-3">시스템 정보</h2>
-                {system.description && (
-                  <p className="text-muted-foreground mb-4">{system.description}</p>
-                )}
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">버전:</span>
-                    <span>{system.version}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">생성일:</span>
-                    <span>{formatDate(system.created_at)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">업데이트:</span>
-                    <span>{formatDate(system.updated_at)}</span>
-                  </div>
-                  {system.category && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">카테고리:</span>
-                      <span>{system.category}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">다운로드:</span>
-                    <span>{system.downloads_count}회</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">좋아요:</span>
-                    <span>{system.likes_count}개</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tags */}
-              {system.tags.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3">태그</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {system.tags.map((tag, index) => (
-                      <span key={index} className="px-2 py-1 bg-muted text-sm rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* 헤더 */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {designSystem.name}
+              </h1>
+              {designSystem.description && (
+                <p className="text-gray-600 mb-4">
+                  {designSystem.description}
+                </p>
+              )}
+              
+              {designSystem.tags && designSystem.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {designSystem.tags.map(tag => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               )}
+            </div>
 
-              {/* Components */}
-              <div>
-                <h3 className="font-medium mb-3">포함된 컴포넌트</h3>
-                <div className="space-y-1">
-                  {system.selected_components.map((component) => (
-                    <div key={component} className="text-sm text-muted-foreground">
-                      • {component}
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={shareDesignSystem}
+                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                title="공유하기"
+              >
+                <Share2 size={20} />
+              </button>
             </div>
           </div>
 
-          {/* Theme Preview */}
-          <div className="lg:col-span-2">
-            <div className="border border-border rounded-lg p-6">
-              <h2 className="text-lg font-semibold mb-6">테마 미리보기</h2>
-              
-              {/* Color Palette */}
-              <div className="mb-8">
-                <h3 className="font-medium mb-4">색상 팔레트</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(theme.colors).map(([name, color]) => (
-                    <div key={name} className="text-center">
-                      <div 
-                        className="w-full h-20 rounded-lg border border-border mb-2"
-                        style={{ backgroundColor: color }}
-                      />
-                      <div className="text-sm font-medium capitalize">{name}</div>
-                      <div className="text-xs text-muted-foreground font-mono">{color}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          <div className="flex items-center gap-6 text-sm text-gray-500">
+            <span className="flex items-center gap-1">
+              <Heart size={16} />
+              {designSystem.favorite_count} 좋아요
+            </span>
+            <span className="flex items-center gap-1">
+              <Download size={16} />
+              {designSystem.download_count} 다운로드
+            </span>
+            <span className="flex items-center gap-1">
+              <Star size={16} />
+              {designSystem.rating_average.toFixed(1)} ({designSystem.rating_count}개 평가)
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar size={16} />
+              {formatDate(designSystem.updated_at)}
+            </span>
+          </div>
 
-              {/* Typography */}
-              <div className="mb-8">
-                <h3 className="font-medium mb-4">타이포그래피</h3>
-                <div 
-                  className="space-y-3"
-                  style={{ fontFamily: theme.typography.fontFamily }}
-                >
-                  <div>
-                    <span className="text-xs text-muted-foreground mr-3">Font Family:</span>
-                    <span className="font-medium">{theme.typography.fontFamily}</span>
-                  </div>
-                  
-                  {Object.entries(theme.typography.fontSize).map(([size, value]) => (
-                    <div key={size} className="flex items-center space-x-4">
-                      <span className="text-xs text-muted-foreground w-12">{size}:</span>
-                      <span style={{ fontSize: value }}>
-                        The quick brown fox jumps over the lazy dog
-                      </span>
-                      <span className="text-xs text-muted-foreground">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Spacing */}
-              <div className="mb-8">
-                <h3 className="font-medium mb-4">간격</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(theme.spacing).map(([name, value]) => (
-                    <div key={name} className="text-center">
-                      <div 
-                        className="bg-primary mx-auto mb-2"
-                        style={{ 
-                          width: value,
-                          height: value,
-                          maxWidth: '100px',
-                          maxHeight: '100px'
-                        }}
-                      />
-                      <div className="text-sm font-medium">{name}</div>
-                      <div className="text-xs text-muted-foreground">{value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Border Radius */}
-              <div>
-                <h3 className="font-medium mb-4">모서리 둥글기</h3>
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                  {Object.entries(theme.borderRadius).map(([name, value]) => (
-                    <div key={name} className="text-center">
-                      <div 
-                        className="w-16 h-16 bg-primary mx-auto mb-2"
-                        style={{ borderRadius: value }}
-                      />
-                      <div className="text-sm font-medium">{name}</div>
-                      <div className="text-xs text-muted-foreground">{value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={() => setShowRatingModal(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center gap-2"
+            >
+              <Star size={16} />
+              평가하기
+            </button>
           </div>
         </div>
+
+        {/* 테마 선택 */}
+        {designSystem.themes && designSystem.themes.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">테마</h2>
+            <div className="flex gap-4">
+              {designSystem.themes.map((theme, index) => (
+                <button
+                  key={theme.id}
+                  onClick={() => setCurrentTheme(index)}
+                  className={`p-4 rounded-lg border-2 transition-colors ${
+                    currentTheme === index
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    />
+                    <span className="font-medium">{theme.name}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    {Object.entries(theme.colors).slice(0, 5).map(([key, color]) => (
+                      <div
+                        key={key}
+                        className="w-3 h-3 rounded-full border border-gray-200"
+                        style={{ backgroundColor: color as string }}
+                      />
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 컴포넌트 미리보기 */}
+        {designSystem.components && designSystem.components.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold mb-4">컴포넌트</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {designSystem.components.map((component) => (
+                <ComponentPreviewEnhanced
+                  key={component.id}
+                  component={{
+                    id: component.id,
+                    name: component.name,
+                    type: component.type as any,
+                    props: component.props,
+                    styles: component.styles
+                  }}
+                  theme={designSystem.themes[currentTheme]}
+                  onEdit={() => {}} // 읽기 전용이므로 빈 함수
+                  onDelete={() => {}} // 읽기 전용이므로 빈 함수
+                  isEditable={false}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 평점 모달 */}
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          designSystemName={designSystem.name}
+          onSubmit={handleRateSubmit}
+        />
       </div>
     </div>
   )

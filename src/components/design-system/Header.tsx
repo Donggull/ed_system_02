@@ -5,25 +5,21 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useDesignSystem } from '@/contexts/DesignSystemContext'
 import { generateComponentCSS } from '@/lib/themeGenerator'
 import Button from '@/components/ui/Button'
-import SaveLoadModal from './SaveLoadModal'
-import BrowseDesignSystems from './BrowseDesignSystems'
 
 import { useState } from 'react'
+import { Save, Share2, Search, History, Heart } from 'lucide-react'
 
 interface HeaderProps {
   activeTab?: 'design' | 'export'
   onTabChange?: (tab: 'design' | 'export') => void
+  onSave?: () => void
+  onShare?: () => void
 }
 
-export default function Header({ activeTab = 'design', onTabChange }: HeaderProps) {
+export default function Header({ activeTab = 'design', onTabChange, onSave, onShare }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
   const { theme: designTheme } = useDesignSystem()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [saveLoadModal, setSaveLoadModal] = useState<{ isOpen: boolean; mode: 'save' | 'load' }>({
-    isOpen: false,
-    mode: 'save'
-  })
-  const [isBrowseOpen, setIsBrowseOpen] = useState(false)
 
   const handleExport = () => {
     const css = generateComponentCSS(designTheme)
@@ -66,18 +62,25 @@ export default function Header({ activeTab = 'design', onTabChange }: HeaderProp
               디자인 시스템
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary rounded-full transition-all duration-200 group-hover:w-full"></span>
             </Link>
-            <button 
-              onClick={() => setIsBrowseOpen(true)}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 relative group"
-            >
-              디자인 시스템 탐색
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary rounded-full transition-all duration-200 group-hover:w-full"></span>
-            </button>
             <Link 
-              href="/test-settings" 
+              href="/browse" 
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 relative group"
             >
-              테스트 설정
+              탐색하기
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary rounded-full transition-all duration-200 group-hover:w-full"></span>
+            </Link>
+            <Link 
+              href="/my-designs" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 relative group"
+            >
+              내 디자인
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary rounded-full transition-all duration-200 group-hover:w-full"></span>
+            </Link>
+            <Link 
+              href="/components" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 relative group"
+            >
+              컴포넌트 갤러리
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-primary rounded-full transition-all duration-200 group-hover:w-full"></span>
             </Link>
           </nav>
@@ -133,6 +136,18 @@ export default function Header({ activeTab = 'design', onTabChange }: HeaderProp
             )}
           </Button>
 
+          {onShare && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="hidden sm:inline-flex hover-lift" 
+              onClick={onShare}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              공유하기
+            </Button>
+          )}
+
           <Button variant="outline" size="sm" className="hidden sm:inline-flex hover-lift" onClick={handleExport}>
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -140,30 +155,12 @@ export default function Header({ activeTab = 'design', onTabChange }: HeaderProp
             CSS 내보내기
           </Button>
 
-          <div className="flex items-center space-x-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="hover-lift"
-              onClick={() => setSaveLoadModal({ isOpen: true, mode: 'load' })}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5m-5 4h.01M9 7h.01M13 7h.01M17 7h.01" />
-              </svg>
-              <span className="hidden sm:inline">불러오기</span>
+          {onSave && (
+            <Button size="sm" className="btn-primary hover-lift" onClick={onSave}>
+              <Save className="w-4 h-4 mr-2" />
+              저장하기
             </Button>
-            
-            <Button 
-              size="sm" 
-              className="btn-primary hover-lift"
-              onClick={() => setSaveLoadModal({ isOpen: true, mode: 'save' })}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
-              <span className="hidden sm:inline">저장하기</span>
-            </Button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -221,36 +218,32 @@ export default function Header({ activeTab = 'design', onTabChange }: HeaderProp
                 🎨 디자인 시스템
               </Link>
               <Link 
+                href="/browse" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 px-3 py-2 rounded-lg hover:bg-muted/50"
+              >
+                <Search className="w-4 h-4 inline mr-2" />
+                탐색하기
+              </Link>
+              <Link 
+                href="/my-designs" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 px-3 py-2 rounded-lg hover:bg-muted/50"
+              >
+                <Heart className="w-4 h-4 inline mr-2" />
+                내 디자인
+              </Link>
+              <Link 
                 href="/components" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 px-3 py-2 rounded-lg hover:bg-muted/50"
               >
                 🧩 컴포넌트 갤러리
               </Link>
-              <Link 
-                href="/test-settings" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 px-3 py-2 rounded-lg hover:bg-muted/50"
-              >
-                ⚙️ 테스트 설정
-              </Link>
             </nav>
           </div>
         </div>
       )}
-
-      {/* Save/Load Modal */}
-      <SaveLoadModal
-        isOpen={saveLoadModal.isOpen}
-        onClose={() => setSaveLoadModal({ isOpen: false, mode: 'save' })}
-        mode={saveLoadModal.mode}
-      />
-
-      {/* Browse Design Systems Modal */}
-      <BrowseDesignSystems
-        isOpen={isBrowseOpen}
-        onClose={() => setIsBrowseOpen(false)}
-      />
     </header>
   )
 }

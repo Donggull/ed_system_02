@@ -1,340 +1,442 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useDesignSystem } from '@/contexts/DesignSystemContext'
-import { DesignSystemService } from '@/lib/designSystemService'
-import Button from '@/components/ui/Button'
-import RatingModal from './RatingModal'
-import { Database } from '@/lib/database.types'
-
-type DesignSystem = Database['public']['Tables']['design_systems']['Row']
+import React, { useState, useEffect } from 'react'
+import { Search, Filter, Grid, List, Heart, Download, Star, Eye, Tag, Calendar } from 'lucide-react'
+import { DesignSystem } from '@/lib/designSystemService'
 
 interface BrowseDesignSystemsProps {
-  isOpen: boolean
-  onClose: () => void
+  userId?: string
+  onSelect?: (designSystem: DesignSystem) => void
 }
 
-const categories = [
-  { value: '', label: '전체' },
-  { value: 'corporate', label: '기업용' },
-  { value: 'startup', label: '스타트업' },
-  { value: 'ecommerce', label: '이커머스' },
-  { value: 'blog', label: '블로그' },
-  { value: 'portfolio', label: '포트폴리오' },
-  { value: 'landing', label: '랜딩페이지' },
-  { value: 'dashboard', label: '대시보드' },
-  { value: 'mobile', label: '모바일' }
+interface FilterState {
+  category: string
+  tags: string[]
+  sortBy: 'created_at' | 'updated_at' | 'rating_average' | 'download_count'
+  searchQuery: string
+}
+
+const CATEGORIES = [
+  'All',
+  'E-commerce',
+  'Dashboard',
+  'Landing Page',
+  'Mobile App',
+  'Web App',
+  'Marketing',
+  'Blog',
+  'Portfolio',
+  'Other'
 ]
 
-const sortOptions = [
-  { value: 'updated_at', label: '최근 업데이트' },
+const SORT_OPTIONS = [
+  { value: 'updated_at', label: '최근 수정' },
   { value: 'created_at', label: '최근 생성' },
-  { value: 'likes_count', label: '인기순' },
-  { value: 'downloads_count', label: '다운로드순' }
+  { value: 'rating_average', label: '평점 높은 순' },
+  { value: 'download_count', label: '다운로드 많은 순' }
 ]
 
-export default function BrowseDesignSystems({ isOpen, onClose }: BrowseDesignSystemsProps) {
-  const { setTheme } = useDesignSystem()
-  const [systems, setSystems] = useState<DesignSystem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [filters, setFilters] = useState({
-    category: '',
-    tags: '',
-    sortBy: 'updated_at' as 'created_at' | 'updated_at' | 'likes_count' | 'downloads_count'
-  })
-  const [searchTerm, setSearchTerm] = useState('')
-  const [ratingModal, setRatingModal] = useState<{ isOpen: boolean; systemId: string | null; systemName: string }>({
-    isOpen: false,
-    systemId: null,
-    systemName: ''
+export default function BrowseDesignSystems({ userId, onSelect }: BrowseDesignSystemsProps) {
+  const [designSystems, setDesignSystems] = useState<DesignSystem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showFilters, setShowFilters] = useState(false)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [filters, setFilters] = useState<FilterState>({
+    category: 'All',
+    tags: [],
+    sortBy: 'updated_at',
+    searchQuery: ''
   })
 
   useEffect(() => {
-    if (isOpen) {
-      loadPublicSystems()
-    }
-  }, [isOpen, filters])
+    fetchDesignSystems()
+  }, [filters, page])
 
-  const loadPublicSystems = async () => {
+  const fetchDesignSystems = async () => {
+    setLoading(true)
     try {
-      setIsLoading(true)
-      const tags = filters.tags ? filters.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined
-      const systems = await DesignSystemService.getPublicDesignSystems(
-        50, // limit
-        0,  // offset
-        filters.category || undefined,
-        tags,
-        filters.sortBy
-      )
-      setSystems(systems)
-    } catch (error) {
-      console.error('Failed to load public systems:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '12',
+        sort: filters.sortBy
+      })
 
-  const handleApplySystem = async (system: DesignSystem) => {
-    try {
-      await setTheme(system.theme_data as any, true)
-      
-      // Record download
-      await DesignSystemService.recordDownload(system.id, 'theme_only')
-      
-      alert(`"${system.name}" 디자인 시스템이 적용되었습니다!`)
-      onClose()
-    } catch (error) {
-      console.error('Failed to apply system:', error)
-      alert('디자인 시스템 적용에 실패했습니다.')
-    }
-  }
-
-  const handleDownload = async (system: DesignSystem) => {
-    try {
-      // Record download
-      await DesignSystemService.recordDownload(system.id, 'full')
-      
-      // Create downloadable JSON
-      const downloadData = {
-        name: system.name,
-        description: system.description,
-        theme: system.theme_data,
-        selectedComponents: system.selected_components,
-        componentSettings: system.component_settings,
-        tags: system.tags,
-        category: system.category,
-        exportedAt: new Date().toISOString()
+      if (filters.category !== 'All') {
+        params.append('category', filters.category)
       }
-      
-      const blob = new Blob([JSON.stringify(downloadData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${system.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_design_system.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-      // Update download count in UI
-      setSystems(prev => prev.map(s => 
-        s.id === system.id 
-          ? { ...s, downloads_count: s.downloads_count + 1 }
-          : s
-      ))
+      if (filters.tags.length > 0) {
+        params.append('tags', filters.tags.join(','))
+      }
+      if (filters.searchQuery) {
+        params.append('q', filters.searchQuery)
+      }
+
+      const response = await fetch(`/api/design-systems?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setDesignSystems(data.systems)
+        setTotal(data.total)
+      }
     } catch (error) {
-      console.error('Failed to download system:', error)
-      alert('다운로드에 실패했습니다.')
+      console.error('디자인 시스템 로드 실패:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const toggleFavorite = async (systemId: string) => {
+  const handleSearch = (query: string) => {
+    setFilters(prev => ({ ...prev, searchQuery: query }))
+    setPage(1)
+  }
+
+  const handleCategoryChange = (category: string) => {
+    setFilters(prev => ({ ...prev, category }))
+    setPage(1)
+  }
+
+  const handleSortChange = (sortBy: FilterState['sortBy']) => {
+    setFilters(prev => ({ ...prev, sortBy }))
+    setPage(1)
+  }
+
+  const toggleFavorite = async (designSystemId: string) => {
+    if (!userId) return
+
     try {
-      await DesignSystemService.toggleFavorite(systemId)
-      // In a real app, you'd refresh the systems or update the favorite status
-      alert('즐겨찾기가 업데이트되었습니다.')
+      const response = await fetch(`/api/design-systems/${designSystemId}/favorite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+
+      if (response.ok) {
+        fetchDesignSystems() // 목록 새로고침
+      }
     } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-      alert('즐겨찾기 업데이트에 실패했습니다.')
+      console.error('즐겨찾기 토글 실패:', error)
     }
   }
 
-  const filteredSystems = systems.filter(system => {
-    if (!searchTerm) return true
-    return (
-      system.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      system.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      system.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-  })
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
 
-  if (!isOpen) return null
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background border border-border rounded-xl shadow-xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-border">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">공개 디자인 시스템 탐색</h2>
+  const DesignSystemCard = ({ system }: { system: DesignSystem }) => (
+    <div
+      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onSelect?.(system)}
+    >
+      {system.thumbnail_url && (
+        <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
+          <img
+            src={system.thumbnail_url}
+            alt={system.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-semibold text-gray-900 truncate flex-1">
+            {system.name}
+          </h3>
+          {userId && (
             <button
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleFavorite(system.id)
+              }}
+              className="text-gray-400 hover:text-red-500 ml-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <Heart size={16} />
             </button>
+          )}
+        </div>
+
+        {system.description && (
+          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+            {system.description}
+          </p>
+        )}
+
+        {system.tags && system.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {system.tags.slice(0, 3).map(tag => (
+              <span
+                key={tag}
+                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
+              >
+                {tag}
+              </span>
+            ))}
+            {system.tags.length > 3 && (
+              <span className="text-xs text-gray-500">
+                +{system.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between text-sm text-gray-500">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <Heart size={14} />
+              {system.favorite_count}
+            </span>
+            <span className="flex items-center gap-1">
+              <Download size={14} />
+              {system.download_count}
+            </span>
+            <span className="flex items-center gap-1">
+              <Star size={14} />
+              {system.rating_average.toFixed(1)}
+            </span>
+          </div>
+          <span className="flex items-center gap-1">
+            <Calendar size={14} />
+            {formatDate(system.updated_at)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  const DesignSystemListItem = ({ system }: { system: DesignSystem }) => (
+    <div
+      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onSelect?.(system)}
+    >
+      <div className="flex items-start gap-4">
+        {system.thumbnail_url && (
+          <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+            <img
+              src={system.thumbnail_url}
+              alt={system.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="font-semibold text-gray-900 truncate">
+              {system.name}
+            </h3>
+            {userId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleFavorite(system.id)
+                }}
+                className="text-gray-400 hover:text-red-500 ml-2"
+              >
+                <Heart size={16} />
+              </button>
+            )}
           </div>
 
-          {/* Filters */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {system.description && (
+            <p className="text-sm text-gray-600 mb-2">
+              {system.description}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <span className="flex items-center gap-1">
+                <Heart size={14} />
+                {system.favorite_count}
+              </span>
+              <span className="flex items-center gap-1">
+                <Download size={14} />
+                {system.download_count}
+              </span>
+              <span className="flex items-center gap-1">
+                <Star size={14} />
+                {system.rating_average.toFixed(1)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Calendar size={14} />
+                {formatDate(system.updated_at)}
+              </span>
+            </div>
+
+            {system.tags && system.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {system.tags.slice(0, 2).map(tag => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* 검색 및 필터 */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
-              placeholder="검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="디자인 시스템 검색..."
+              value={filters.searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Filter size={16} />
+              필터
+            </button>
             
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-              className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
-
-            <input
-              type="text"
-              placeholder="태그 (쉼표로 구분)"
-              value={filters.tags}
-              onChange={(e) => setFilters(prev => ({ ...prev, tags: e.target.value }))}
-              className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-
-            <select
-              value={filters.sortBy}
-              onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
-              className="px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {sortOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+            <div className="flex border border-gray-300 rounded-md">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 ${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Grid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <List size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-              <p className="text-muted-foreground mt-2">로딩 중...</p>
+        {showFilters && (
+          <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                카테고리
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(category => (
+                  <button
+                    key={category}
+                    onClick={() => handleCategoryChange(category)}
+                    className={`px-3 py-1 rounded-md text-sm ${
+                      filters.category === category
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : filteredSystems.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">조건에 맞는 디자인 시스템을 찾을 수 없습니다.</p>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                정렬
+              </label>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleSortChange(e.target.value as FilterState['sortBy'])}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {SORT_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 결과 */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : designSystems.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-4">
+            <Search size={48} className="mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            검색 결과가 없습니다
+          </h3>
+          <p className="text-gray-600">
+            다른 검색어나 필터를 시도해보세요.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              총 {total}개의 디자인 시스템
+            </p>
+          </div>
+
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {designSystems.map(system => (
+                <DesignSystemCard key={system.id} system={system} />
+              ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSystems.map((system) => (
-                <div key={system.id} className="border border-border rounded-lg p-4 hover:border-primary/50 transition-all duration-200">
-                  <div className="mb-3">
-                    <h3 className="font-medium text-lg">{system.name}</h3>
-                    {system.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {system.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Theme Preview */}
-                  <div className="mb-3">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="text-xs text-muted-foreground">색상:</span>
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (system.theme_data as any)?.colors?.primary || '#000' }}
-                        title="Primary"
-                      />
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (system.theme_data as any)?.colors?.secondary || '#000' }}
-                        title="Secondary"
-                      />
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (system.theme_data as any)?.colors?.background || '#fff' }}
-                        title="Background"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      폰트: {(system.theme_data as any)?.typography?.fontFamily || 'Unknown'}
-                    </p>
-                  </div>
-
-                  {/* Tags */}
-                  {system.tags.length > 0 && (
-                    <div className="mb-3">
-                      <div className="flex flex-wrap gap-1">
-                        {system.tags.slice(0, 3).map((tag, index) => (
-                          <span key={index} className="px-2 py-1 bg-muted text-xs rounded">
-                            {tag}
-                          </span>
-                        ))}
-                        {system.tags.length > 3 && (
-                          <span className="px-2 py-1 bg-muted text-xs rounded">
-                            +{system.tags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span>❤️ {system.likes_count}</span>
-                      <span>⬇️ {system.downloads_count}</span>
-                      {system.category && <span>📁 {system.category}</span>}
-                    </div>
-                    <span>{new Date(system.updated_at).toLocaleDateString()}</span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2">
-                    <Button 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={() => handleApplySystem(system)}
-                    >
-                      적용하기
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleDownload(system)}
-                    >
-                      다운로드
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => toggleFavorite(system.id)}
-                      className="px-2"
-                      title="즐겨찾기"
-                    >
-                      ⭐
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => setRatingModal({ 
-                        isOpen: true, 
-                        systemId: system.id, 
-                        systemName: system.name 
-                      })}
-                      className="px-2"
-                      title="평가하기"
-                    >
-                      💬
-                    </Button>
-                  </div>
-                </div>
+            <div className="space-y-4">
+              {designSystems.map(system => (
+                <DesignSystemListItem key={system.id} system={system} />
               ))}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Rating Modal */}
-      <RatingModal
-        isOpen={ratingModal.isOpen}
-        onClose={() => setRatingModal({ isOpen: false, systemId: null, systemName: '' })}
-        designSystemId={ratingModal.systemId}
-        designSystemName={ratingModal.systemName}
-      />
+          {/* 페이지네이션 */}
+          {total > 12 && (
+            <div className="flex items-center justify-center gap-2 pt-6">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
+              >
+                이전
+              </button>
+              
+              <span className="px-4 py-2 text-sm text-gray-600">
+                {page} / {Math.ceil(total / 12)}
+              </span>
+              
+              <button
+                onClick={() => setPage(Math.min(Math.ceil(total / 12), page + 1))}
+                disabled={page >= Math.ceil(total / 12)}
+                className="px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 hover:bg-gray-50"
+              >
+                다음
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

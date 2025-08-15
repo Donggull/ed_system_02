@@ -1,144 +1,148 @@
 'use client'
 
-import { useState } from 'react'
-import { DesignSystemService } from '@/lib/designSystemService'
-import Button from '@/components/ui/Button'
+import React, { useState } from 'react'
+import { X, Star, Send } from 'lucide-react'
 
 interface RatingModalProps {
   isOpen: boolean
   onClose: () => void
-  designSystemId: string | null
-  designSystemName?: string
+  designSystemName: string
+  initialRating?: number
+  initialComment?: string
+  onSubmit: (rating: number, comment: string) => Promise<void>
 }
 
-export default function RatingModal({ isOpen, onClose, designSystemId, designSystemName }: RatingModalProps) {
-  const [rating, setRating] = useState(0)
-  const [feedback, setFeedback] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+export default function RatingModal({ 
+  isOpen, 
+  onClose, 
+  designSystemName, 
+  initialRating = 0, 
+  initialComment = '',
+  onSubmit 
+}: RatingModalProps) {
+  const [rating, setRating] = useState(initialRating)
+  const [comment, setComment] = useState(initialComment)
+  const [hoveredRating, setHoveredRating] = useState(0)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async () => {
-    if (!designSystemId || rating === 0) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (rating === 0) {
       alert('평점을 선택해주세요.')
       return
     }
 
+    setLoading(true)
     try {
-      setIsLoading(true)
-      await DesignSystemService.addRating(designSystemId, rating, feedback || undefined)
-      alert('평가가 완료되었습니다!')
-      handleClose()
+      await onSubmit(rating, comment)
+      onClose()
     } catch (error) {
-      console.error('Failed to submit rating:', error)
-      alert('평가 제출에 실패했습니다.')
+      console.error('평점 저장 실패:', error)
+      alert('평점 저장에 실패했습니다.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }
-
-  const handleClose = () => {
-    setRating(0)
-    setFeedback('')
-    onClose()
-  }
-
-  const StarRating = ({ rating, onRatingChange }: { rating: number; onRatingChange: (rating: number) => void }) => {
-    return (
-      <div className="flex space-x-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            type="button"
-            onClick={() => onRatingChange(star)}
-            className={`w-8 h-8 transition-colors ${
-              star <= rating 
-                ? 'text-yellow-400 hover:text-yellow-500' 
-                : 'text-gray-300 hover:text-yellow-400'
-            }`}
-          >
-            <svg 
-              className="w-full h-full" 
-              fill="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-            </svg>
-          </button>
-        ))}
-      </div>
-    )
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background border border-border rounded-xl shadow-xl max-w-md w-full mx-4">
-        <div className="p-6 border-b border-border">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">디자인 시스템 평가</h2>
-            <button
-              onClick={handleClose}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold">평점 및 리뷰</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X size={24} />
+          </button>
         </div>
 
-        <div className="p-6 space-y-6">
-          {designSystemName && (
-            <div>
-              <h3 className="font-medium text-center">"{designSystemName}"</h3>
-              <p className="text-sm text-muted-foreground text-center mt-1">
-                이 디자인 시스템이 어떠셨나요?
-              </p>
-            </div>
-          )}
-
-          <div className="text-center">
-            <label className="block text-sm font-medium mb-3">평점</label>
-            <StarRating rating={rating} onRatingChange={setRating} />
-            <div className="mt-2">
-              <span className="text-sm text-muted-foreground">
-                {rating === 0 && '평점을 선택해주세요'}
-                {rating === 1 && '매우 불만족'}
-                {rating === 2 && '불만족'}
-                {rating === 3 && '보통'}
-                {rating === 4 && '만족'}
-                {rating === 5 && '매우 만족'}
-              </span>
-            </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div>
+            <h3 className="font-medium text-gray-900 mb-2">{designSystemName}</h3>
+            <p className="text-sm text-gray-600">
+              이 디자인 시스템에 대한 평가를 남겨주세요.
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">피드백 (선택사항)</label>
-            <textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              rows={4}
-              placeholder="디자인 시스템에 대한 의견을 자유롭게 남겨주세요..."
-              maxLength={500}
-            />
-            <div className="text-right text-xs text-muted-foreground mt-1">
-              {feedback.length}/500
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              평점 *
+            </label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className="p-1 transition-colors"
+                >
+                  <Star
+                    size={32}
+                    className={`${
+                      star <= (hoveredRating || rating)
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300'
+                    } transition-colors`}
+                  />
+                </button>
+              ))}
             </div>
+            {rating > 0 && (
+              <p className="text-sm text-gray-600 mt-2">
+                {rating === 1 && '아쉬워요'}
+                {rating === 2 && '별로예요'}
+                {rating === 3 && '보통이에요'}
+                {rating === 4 && '좋아요'}
+                {rating === 5 && '최고예요!'}
+              </p>
+            )}
           </div>
 
-          <div className="flex justify-end space-x-3">
-            <Button variant="outline" onClick={handleClose}>
-              취소
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={isLoading || rating === 0}
-            >
-              {isLoading ? '제출 중...' : '평가 제출'}
-            </Button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              리뷰 (선택사항)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="이 디자인 시스템에 대한 의견을 자유롭게 남겨주세요."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
+              maxLength={500}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              {comment.length}/500자
+            </p>
           </div>
-        </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={loading || rating === 0}
+              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {initialRating > 0 ? '수정' : '등록'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

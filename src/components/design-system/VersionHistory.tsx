@@ -1,160 +1,199 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useDesignSystem } from '@/contexts/DesignSystemContext'
-import { DesignSystemService } from '@/lib/designSystemService'
-import Button from '@/components/ui/Button'
-import { Database } from '@/lib/database.types'
+import React, { useState, useEffect } from 'react'
+import { X, History, Calendar, User, ChevronDown, ChevronRight } from 'lucide-react'
 
-type Theme = Database['public']['Tables']['themes']['Row']
-
-interface VersionHistoryProps {
-  designSystemId: string | null
-  isOpen: boolean
-  onClose: () => void
+interface Version {
+  id: string
+  version: number
+  data: any
+  changelog: string | null
+  created_at: string
 }
 
-export default function VersionHistory({ designSystemId, isOpen, onClose }: VersionHistoryProps) {
-  const { setTheme } = useDesignSystem()
-  const [versions, setVersions] = useState<Theme[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedVersion, setSelectedVersion] = useState<number | null>(null)
+interface VersionHistoryProps {
+  isOpen: boolean
+  onClose: () => void
+  designSystemId: string
+  designSystemName: string
+}
+
+export default function VersionHistory({ 
+  isOpen, 
+  onClose, 
+  designSystemId,
+  designSystemName 
+}: VersionHistoryProps) {
+  const [versions, setVersions] = useState<Version[]>([])
+  const [loading, setLoading] = useState(false)
+  const [expandedVersion, setExpandedVersion] = useState<number | null>(null)
 
   useEffect(() => {
-    if (isOpen && designSystemId) {
-      loadVersionHistory()
+    if (isOpen) {
+      fetchVersions()
     }
   }, [isOpen, designSystemId])
 
-  const loadVersionHistory = async () => {
-    if (!designSystemId) return
-
+  const fetchVersions = async () => {
+    setLoading(true)
     try {
-      setIsLoading(true)
-      const system = await DesignSystemService.getDesignSystemWithDetails(designSystemId)
-      if (system?.themes) {
-        setVersions(system.themes.sort((a, b) => b.version - a.version))
+      const response = await fetch(`/api/design-systems/${designSystemId}/versions`)
+      if (response.ok) {
+        const data = await response.json()
+        setVersions(data)
       }
     } catch (error) {
-      console.error('Failed to load version history:', error)
+      console.error('버전 히스토리 로드 실패:', error)
     } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleVersionSelect = async (version: Theme) => {
-    try {
-      setSelectedVersion(version.version)
-      await setTheme(version.theme_data as any, true)
-      alert(`버전 ${version.version}이 적용되었습니다.`)
-    } catch (error) {
-      console.error('Failed to apply version:', error)
-      alert('버전 적용에 실패했습니다.')
+      setLoading(false)
     }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR')
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const toggleExpanded = (version: number) => {
+    setExpandedVersion(expandedVersion === version ? null : version)
   }
 
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background border border-border rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-        <div className="p-6 border-b border-border">
-          <h2 className="text-xl font-semibold">버전 히스토리</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <History size={20} />
+            버전 히스토리
+          </h2>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+            className="text-gray-400 hover:text-gray-600"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X size={24} />
           </button>
         </div>
 
-        <div className="p-6">
-          {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto"></div>
-              <p className="text-muted-foreground mt-2">로딩 중...</p>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="mb-4">
+            <h3 className="font-medium text-gray-900">{designSystemName}</h3>
+            <p className="text-sm text-gray-600">
+              디자인 시스템의 변경 이력을 확인할 수 있습니다.
+            </p>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : versions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">버전 히스토리가 없습니다.</p>
+            <div className="text-center py-8 text-gray-500">
+              버전 히스토리가 없습니다.
             </div>
           ) : (
             <div className="space-y-4">
-              {versions.map((version) => (
-                <div 
-                  key={version.id} 
-                  className={`border border-border rounded-lg p-4 transition-all duration-200 ${
-                    selectedVersion === version.version ? 'border-primary bg-primary/5' : 'hover:border-primary/50'
-                  }`}
+              {versions.map((version, index) => (
+                <div
+                  key={version.id}
+                  className="border border-gray-200 rounded-lg overflow-hidden"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="font-medium">버전 {version.version}</h3>
-                        {selectedVersion === version.version && (
-                          <span className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded">
-                            현재 적용됨
-                          </span>
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-50"
+                    onClick={() => toggleExpanded(version.version)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {expandedVersion === version.version ? (
+                          <ChevronDown size={16} className="text-gray-400" />
+                        ) : (
+                          <ChevronRight size={16} className="text-gray-400" />
                         )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">v{version.version}</span>
+                            {index === 0 && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                최신
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              {formatDate(version.created_at)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {version.change_description && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {version.change_description}
-                        </p>
-                      )}
-                      
-                      <p className="text-xs text-muted-foreground">
-                        생성일: {formatDate(version.created_at)}
-                      </p>
                     </div>
                     
-                    <div className="flex space-x-2 ml-4">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleVersionSelect(version)}
-                        disabled={selectedVersion === version.version}
-                      >
-                        {selectedVersion === version.version ? '적용됨' : '적용하기'}
-                      </Button>
-                    </div>
+                    {version.changelog && (
+                      <p className="text-sm text-gray-700 mt-2 ml-6">
+                        {version.changelog}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Theme preview */}
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                      <span>미리보기:</span>
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (version.theme_data as any)?.colors?.primary || '#000' }}
-                        title="Primary Color"
-                      />
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (version.theme_data as any)?.colors?.secondary || '#000' }}
-                        title="Secondary Color"
-                      />
-                      <div 
-                        className="w-4 h-4 rounded border border-border"
-                        style={{ backgroundColor: (version.theme_data as any)?.colors?.background || '#fff' }}
-                        title="Background Color"
-                      />
-                      <span>
-                        {(version.theme_data as any)?.typography?.fontFamily || 'Unknown'}
-                      </span>
+                  {expandedVersion === version.version && (
+                    <div className="border-t border-gray-200 p-4 bg-gray-50">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="font-medium text-sm text-gray-700 mb-2">변경 내용</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">컴포넌트:</span>
+                              <span className="ml-2 text-gray-600">
+                                {version.data.components?.length || 0}개
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium">테마:</span>
+                              <span className="ml-2 text-gray-600">
+                                {version.data.themes?.length || 0}개
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {version.data.tags && version.data.tags.length > 0 && (
+                          <div>
+                            <span className="font-medium text-sm text-gray-700">태그:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {version.data.tags.map((tag: string) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-md"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
+        </div>
+
+        <div className="p-6 border-t">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+          >
+            닫기
+          </button>
         </div>
       </div>
     </div>

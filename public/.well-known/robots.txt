@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ed-system.vercel.app/sitemap.xml
