@@ -91,7 +91,8 @@ export default function SharedDesignSystemPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-          <p className="text-muted-foreground mt-4">로딩 중...</p>
+          <p className="text-muted-foreground mt-4">공유된 디자인 시스템을 불러오는 중...</p>
+          <p className="text-sm text-muted-foreground mt-2">잠시만 기다려주세요.</p>
         </div>
       </div>
     )
@@ -104,6 +105,30 @@ export default function SharedDesignSystemPage() {
           <div className="text-6xl mb-4">❌</div>
           <h1 className="text-2xl font-bold mb-2">접근할 수 없음</h1>
           <p className="text-muted-foreground mb-6">{error}</p>
+          
+          {/* 에러 타입별 추가 정보 */}
+          {error.includes('데이터베이스 연결') && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+              <p className="text-sm text-yellow-800">
+                <strong>문제:</strong> 데이터베이스 연결이 설정되지 않았습니다.
+              </p>
+              <p className="text-sm text-yellow-800 mt-2">
+                <strong>해결방법:</strong> 환경 변수 파일(.env.local)에 Supabase 연결 정보를 설정하세요.
+              </p>
+            </div>
+          )}
+          
+          {error.includes('공유 링크를 찾을 수 없습니다') && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
+              <p className="text-sm text-blue-800">
+                <strong>문제:</strong> 잘못된 공유 링크입니다.
+              </p>
+              <p className="text-sm text-blue-800 mt-2">
+                <strong>해결방법:</strong> 올바른 공유 링크를 확인하거나 링크 제공자에게 문의하세요.
+              </p>
+            </div>
+          )}
+          
           <Link href="/">
             <Button>홈으로 돌아가기</Button>
           </Link>
@@ -122,7 +147,7 @@ export default function SharedDesignSystemPage() {
     )
   }
 
-  const theme = system.theme_data as DesignSystemTheme
+  const theme = system.theme_data as unknown as DesignSystemTheme
 
   return (
     <div className="min-h-screen bg-background">

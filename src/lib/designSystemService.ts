@@ -400,18 +400,42 @@ export class DesignSystemService {
 
   // Get shared design system by token
   static async getSharedDesignSystem(shareToken: string): Promise<DesignSystemWithDetails | null> {
-    const { data: sharedSystem, error: shareError } = await supabase
-      .from('shared_systems')
-      .select('design_system_id, is_active, expires_at')
-      .eq('share_token', shareToken)
-      .single()
+    try {
+      // Supabase 연결 상태 확인
+      if (!supabase) {
+        throw new Error('데이터베이스 연결을 초기화할 수 없습니다.')
+      }
 
-    if (shareError) throw shareError
-    if (!sharedSystem.is_active) throw new Error('Share link is no longer active')
-    if (sharedSystem.expires_at && new Date(sharedSystem.expires_at) < new Date()) {
-      throw new Error('Share link has expired')
+      const { data: sharedSystem, error: shareError } = await supabase
+        .from('shared_systems')
+        .select('design_system_id, is_active, expires_at')
+        .eq('share_token', shareToken)
+        .single()
+
+      if (shareError) {
+        console.error('Shared system fetch error:', shareError)
+        if (shareError.code === 'PGRST116') {
+          throw new Error('공유 링크를 찾을 수 없습니다.')
+        }
+        throw new Error('공유 시스템을 불러오는 중 오류가 발생했습니다.')
+      }
+
+      if (!sharedSystem) {
+        throw new Error('공유 링크를 찾을 수 없습니다.')
+      }
+
+      if (!sharedSystem.is_active) {
+        throw new Error('공유 링크가 더 이상 활성화되지 않았습니다.')
+      }
+
+      if (sharedSystem.expires_at && new Date(sharedSystem.expires_at) < new Date()) {
+        throw new Error('공유 링크가 만료되었습니다.')
+      }
+
+      return await this.getDesignSystemWithDetails(sharedSystem.design_system_id)
+    } catch (error: any) {
+      console.error('getSharedDesignSystem error:', error)
+      throw error
     }
-
-    return await this.getDesignSystemWithDetails(sharedSystem.design_system_id)
   }
 }

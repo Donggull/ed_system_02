@@ -66,6 +66,25 @@ Next.js와 Tailwind CSS를 사용하여 구축된 완전한 디자인 시스템 
 
 ## 시작하기
 
+### 환경 설정
+
+이 프로젝트는 Supabase 데이터베이스를 사용합니다. 다음 단계를 따라 환경을 설정하세요:
+
+1. **Supabase 프로젝트 생성**
+   - [Supabase](https://supabase.com)에서 새 프로젝트를 생성하세요
+   - 프로젝트 URL과 anon key를 복사하세요
+
+2. **환경 변수 설정**
+   프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가하세요:
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+
+3. **데이터베이스 스키마 설정**
+   - Supabase 대시보드에서 SQL 에디터를 열고
+   - `database.types.ts`에 정의된 테이블 구조를 생성하세요
+
 ### 설치
 
 ```bash
