@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured, type Database } from './supabase'
+import { supabaseHttp } from './supabaseHttp'
 
 export type DesignSystem = Database['public']['Tables']['design_systems']['Row']
 export type Component = Database['public']['Tables']['components']['Row']
@@ -25,77 +26,73 @@ export interface DesignSystemWithDetails extends DesignSystem {
 class DesignSystemService {
   async saveDesignSystem(data: DesignSystemData, userId: string | null): Promise<string> {
     try {
-      // Supabase가 설정되지 않은 경우 시뮬레이션
-      if (!isSupabaseConfigured()) {
-        console.info('📝 Simulating design system save (Supabase not configured):', {
-          name: data.name,
-          userId,
-          componentsCount: data.components.length,
-          themesCount: data.themes.length
-        })
-        return 'sim-ds-' + Date.now()
-      }
-
-      console.info('💾 Saving design system to Supabase:', {
+      console.info('💾 HTTP를 통한 디자인 시스템 저장 시작:', {
         name: data.name,
         userId,
         componentsCount: data.components.length,
         themesCount: data.themes.length
       })
 
-      // 디자인 시스템 생성
-      const { data: designSystem, error: dsError } = await supabase
-        .from('design_systems')
-        .insert({
-          user_id: userId,
-          name: data.name,
-          description: data.description,
-          tags: data.tags,
-          category: data.category,
-        })
-        .select()
-        .single()
+      // 연결 테스트
+      const isConnected = await supabaseHttp.testConnection()
+      if (!isConnected) {
+        throw new Error('Supabase 연결 실패')
+      }
 
-      if (dsError) throw dsError
+      // 디자인 시스템 생성
+      const designSystem = await supabaseHttp.insertDesignSystem({
+        user_id: userId,
+        name: data.name,
+        description: data.description,
+        tags: data.tags,
+        category: data.category,
+      })
 
       const designSystemId = designSystem.id
+      console.info('✅ 디자인 시스템 생성 완료:', designSystemId)
 
       // 컴포넌트 저장
       if (data.components.length > 0) {
-        const { error: componentsError } = await supabase
-          .from('components')
-          .insert(
-            data.components.map((component, index) => ({
-              design_system_id: designSystemId,
-              ...component,
-              order_index: index,
-            }))
-          )
-
-        if (componentsError) throw componentsError
+        console.info('📦 컴포넌트 저장 중...')
+        for (let i = 0; i < data.components.length; i++) {
+          const component = data.components[i]
+          await supabaseHttp.insertComponent({
+            design_system_id: designSystemId,
+            ...component,
+            order_index: i,
+          })
+        }
+        console.info('✅ 컴포넌트 저장 완료')
       }
 
       // 테마 저장
       if (data.themes.length > 0) {
-        const { error: themesError } = await supabase
-          .from('themes')
-          .insert(
-            data.themes.map((theme, index) => ({
-              design_system_id: designSystemId,
-              ...theme,
-              is_default: index === 0, // 첫 번째 테마를 기본값으로 설정
-            }))
-          )
-
-        if (themesError) throw themesError
+        console.info('🎨 테마 저장 중...')
+        for (let i = 0; i < data.themes.length; i++) {
+          const theme = data.themes[i]
+          await supabaseHttp.insertTheme({
+            design_system_id: designSystemId,
+            ...theme,
+            is_default: i === 0, // 첫 번째 테마를 기본값으로 설정
+          })
+        }
+        console.info('✅ 테마 저장 완료')
       }
 
       // 버전 히스토리 저장
-      await this.saveVersion(designSystemId, 1, data, 'Initial version')
+      console.info('📋 버전 히스토리 저장 중...')
+      await supabaseHttp.insertVersion({
+        design_system_id: designSystemId,
+        version: 1,
+        data: data,
+        changelog: 'Initial version'
+      })
+      console.info('✅ 버전 히스토리 저장 완료')
 
+      console.info('🎉 전체 저장 프로세스 완료!')
       return designSystemId
     } catch (error) {
-      console.error('Error saving design system:', error)
+      console.error('❌ 저장 실패:', error)
       throw error
     }
   }
@@ -219,97 +216,36 @@ class DesignSystemService {
 
   async getDesignSystem(id: string, userId?: string | null): Promise<DesignSystemWithDetails | null> {
     try {
-      // Supabase가 설정되지 않은 경우 시뮬레이션
-      if (!isSupabaseConfigured()) {
-        return {
-          id,
-          user_id: userId || 'temp-user-id',
-          name: 'Sample Design System',
-          description: 'This is a sample design system',
-          is_public: false,
-          share_token: 'sample-token',
-          thumbnail_url: null,
-          tags: ['sample', 'demo'],
-          category: 'Web App',
-          favorite_count: 0,
-          download_count: 0,
-          rating_average: 0,
-          rating_count: 0,
-          version: 1,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          components: [],
-          themes: [],
-          is_favorited: false,
-          user_rating: undefined
-        }
+      console.info('📋 HTTP를 통한 디자인 시스템 조회:', id)
+      
+      const designSystem = await supabaseHttp.getDesignSystem(id)
+      
+      if (!designSystem) {
+        console.info('❌ 디자인 시스템을 찾을 수 없음:', id)
+        return null
       }
-
-      const { data: designSystem, error: dsError } = await supabase
-        .from('design_systems')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (dsError) throw dsError
 
       // 공개되지 않은 시스템의 경우 소유자만 접근 가능
       if (!designSystem.is_public && designSystem.user_id !== userId) {
         throw new Error('Access denied')
       }
 
-      // 컴포넌트 가져오기
-      const { data: components, error: componentsError } = await supabase
-        .from('components')
-        .select('*')
-        .eq('design_system_id', id)
-        .order('order_index')
-
-      if (componentsError) throw componentsError
-
-      // 테마 가져오기
-      const { data: themes, error: themesError } = await supabase
-        .from('themes')
-        .select('*')
-        .eq('design_system_id', id)
-
-      if (themesError) throw themesError
-
-      // 즐겨찾기 상태 확인
-      let is_favorited = false
-      if (userId) {
-        const { data: favorite } = await supabase
-          .from('user_favorites')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('design_system_id', id)
-          .single()
-
-        is_favorited = !!favorite
-      }
-
-      // 사용자 평점 확인
-      let user_rating = undefined
-      if (userId) {
-        const { data: rating } = await supabase
-          .from('ratings')
-          .select('rating')
-          .eq('user_id', userId)
-          .eq('design_system_id', id)
-          .single()
-
-        user_rating = rating?.rating
-      }
+      console.info('✅ 디자인 시스템 조회 완료:', {
+        id: designSystem.id,
+        name: designSystem.name,
+        componentsCount: designSystem.components?.length || 0,
+        themesCount: designSystem.themes?.length || 0
+      })
 
       return {
         ...designSystem,
-        components: components || [],
-        themes: themes || [],
-        is_favorited,
-        user_rating,
+        components: designSystem.components || [],
+        themes: designSystem.themes || [],
+        is_favorited: false, // 임시로 false
+        user_rating: undefined, // 임시로 undefined
       }
     } catch (error) {
-      console.error('Error getting design system:', error)
+      console.error('❌ getDesignSystem 실패:', error)
       return null
     }
   }
