@@ -1,0 +1,4 @@
+Environment variables updated - trigger redeploy
+Timestamp: 2025-08-15T12:35:00Z
+
+This file exists to trigger a Vercel redeploy after environment variables are configured.
