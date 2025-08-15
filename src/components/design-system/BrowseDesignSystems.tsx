@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Search, Filter, Grid, List, Heart, Download, Star, Eye, Tag, Calendar } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Search, Filter, Grid, List, Heart, Download, Star, Calendar } from 'lucide-react'
 import { DesignSystem } from '@/lib/designSystemService'
 
 interface BrowseDesignSystemsProps {
@@ -52,9 +52,9 @@ export default function BrowseDesignSystems({ userId, onSelect }: BrowseDesignSy
 
   useEffect(() => {
     fetchDesignSystems()
-  }, [filters, page])
+  }, [fetchDesignSystems])
 
-  const fetchDesignSystems = async () => {
+  const fetchDesignSystems = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -84,7 +84,7 @@ export default function BrowseDesignSystems({ userId, onSelect }: BrowseDesignSy
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, page])
 
   const handleSearch = (query: string) => {
     setFilters(prev => ({ ...prev, searchQuery: query }))

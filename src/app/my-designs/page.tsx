@@ -153,6 +153,7 @@ export default function MyDesignsPage() {
                 >
                   {system.thumbnail_url && (
                     <div className="aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={system.thumbnail_url}
                         alt={system.name}

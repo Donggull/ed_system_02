@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { Heart, Download, Star, Calendar, User, Share2, ArrowLeft } from 'lucide-react'
+import { Heart, Download, Star, Calendar, Share2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { DesignSystemWithDetails } from '@/lib/designSystemService'
 import ComponentPreviewEnhanced from '@/components/design-system/ComponentPreviewEnhanced'
@@ -22,9 +22,9 @@ export default function SharedDesignSystemPage() {
     if (token) {
       fetchDesignSystem()
     }
-  }, [token])
+  }, [token, fetchDesignSystem])
 
-  const fetchDesignSystem = async () => {
+  const fetchDesignSystem = useCallback(async () => {
     try {
       const response = await fetch(`/api/design-systems/shared/${token}`)
       
@@ -39,13 +39,13 @@ export default function SharedDesignSystemPage() {
 
       const data = await response.json()
       setDesignSystem(data)
-    } catch (error) {
-      console.error('Error fetching design system:', error)
+    } catch (err) {
+      console.error('Error fetching design system:', err)
       setError('디자인 시스템을 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
 
   const handleRateSubmit = async (rating: number, comment: string) => {
     if (!designSystem) return
@@ -64,9 +64,9 @@ export default function SharedDesignSystemPage() {
       if (response.ok) {
         await fetchDesignSystem() // 새로고침해서 업데이트된 평점 반영
       }
-    } catch (error) {
-      console.error('평점 저장 실패:', error)
-      throw error
+    } catch (err) {
+      console.error('평점 저장 실패:', err)
+      throw err
     }
   }
 
@@ -246,7 +246,7 @@ export default function SharedDesignSystemPage() {
                   component={{
                     id: component.id,
                     name: component.name,
-                    type: component.type as any,
+                    type: component.type as 'button' | 'input' | 'card' | 'typography',
                     props: component.props,
                     styles: component.styles
                   }}

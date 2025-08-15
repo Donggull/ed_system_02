@@ -9,14 +9,14 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { DesignSystemProvider, useDesignSystem } from '@/contexts/DesignSystemContext'
 import SaveModal from '@/components/design-system/SaveModal'
 import ShareModal from '@/components/design-system/ShareModal'
-import { designSystemService, type DesignSystemData } from '@/lib/designSystemService'
+import { designSystemService, type DesignSystemData, type DesignSystemWithDetails } from '@/lib/designSystemService'
 
 function HomeContent() {
   const [sidebarWidth, setSidebarWidth] = useState(400)
   const [activeTab, setActiveTab] = useState<'design' | 'export'>('design')
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [savedDesignSystem, setSavedDesignSystem] = useState<any>(null)
+  const [savedDesignSystem, setSavedDesignSystem] = useState<DesignSystemWithDetails | null>(null)
   
   const { selectedComponents, theme } = useDesignSystem()
 
@@ -37,7 +37,12 @@ function HomeContent() {
     }
   }
 
-  const handleSaveSubmit = async (saveData: any) => {
+  const handleSaveSubmit = async (saveData: {
+    name: string
+    description: string
+    tags: string[]
+    category: string
+  }) => {
     try {
       // 임시 사용자 ID (실제로는 인증 시스템에서 가져와야 함)
       const userId = 'temp-user-id'

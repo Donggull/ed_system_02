@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { X, History, Calendar, User, ChevronDown, ChevronRight } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { X, History, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Version {
   id: string
   version: number
-  data: any
+  data: Record<string, unknown>
   changelog: string | null
   created_at: string
 }
@@ -32,9 +32,9 @@ export default function VersionHistory({
     if (isOpen) {
       fetchVersions()
     }
-  }, [isOpen, designSystemId])
+  }, [isOpen, fetchVersions])
 
-  const fetchVersions = async () => {
+  const fetchVersions = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch(`/api/design-systems/${designSystemId}/versions`)
@@ -47,7 +47,7 @@ export default function VersionHistory({
     } finally {
       setLoading(false)
     }
-  }
+  }, [designSystemId])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)

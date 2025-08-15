@@ -7,7 +7,7 @@ import { generateComponentCSS } from '@/lib/themeGenerator'
 import Button from '@/components/ui/Button'
 
 import { useState } from 'react'
-import { Save, Share2, Search, History, Heart } from 'lucide-react'
+import { Save, Share2, Search, Heart } from 'lucide-react'
 
 interface HeaderProps {
   activeTab?: 'design' | 'export'

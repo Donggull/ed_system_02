@@ -17,7 +17,7 @@ export const supabase = (function() {
           upsert: () => Promise.resolve({ error: new Error('Supabase not configured') })
         }),
         rpc: () => Promise.resolve({ error: new Error('Supabase not configured') })
-      } as any
+      } as unknown as ReturnType<typeof createClient>
     }
     return createClient(supabaseUrl, supabaseAnonKey)
   } catch (error) {
@@ -31,7 +31,7 @@ export const supabase = (function() {
         upsert: () => Promise.resolve({ error: new Error('Supabase not configured') })
       }),
       rpc: () => Promise.resolve({ error: new Error('Supabase not configured') })
-    } as any
+    } as unknown as ReturnType<typeof createClient>
   }
 })()
 

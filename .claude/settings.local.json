@@ -9,7 +9,11 @@
       "mcp__supabase-mcp__apply_migration",
       "mcp__github-mcp__git-status",
       "mcp__github-mcp__git-remote-set-url",
-      "mcp__github-mcp__git-add-all"
+      "mcp__github-mcp__git-add-all",
+      "mcp__github-mcp__git-commit",
+      "mcp__github-mcp__git-checkout",
+      "mcp__github-mcp__git-push",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

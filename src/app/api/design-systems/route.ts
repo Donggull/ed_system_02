@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { designSystemService } from '@/lib/designSystemService'
-import { supabase } from '@/lib/supabase'
+
+type SortBy = 'created_at' | 'updated_at' | 'rating_average' | 'download_count'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || undefined
     const tags = searchParams.get('tags')?.split(',').filter(Boolean) || undefined
     const searchQuery = searchParams.get('q') || undefined
-    const sortBy = (searchParams.get('sort') as any) || 'updated_at'
+    const sortBy = (searchParams.get('sort') as SortBy) || 'updated_at'
     const userId = searchParams.get('userId') || undefined
 
     if (userId) {

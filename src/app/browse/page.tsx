@@ -5,9 +5,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import BrowseDesignSystems from '@/components/design-system/BrowseDesignSystems'
 import Link from 'next/link'
 import { ArrowLeft, Search } from 'lucide-react'
+import { DesignSystem } from '@/lib/designSystemService'
 
 export default function BrowsePage() {
-  const handleSelectDesignSystem = (designSystem: any) => {
+  const handleSelectDesignSystem = (designSystem: DesignSystem) => {
     // 공유 링크로 이동
     window.open(`/shared/${designSystem.share_token}`, '_blank')
   }

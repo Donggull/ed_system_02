@@ -3,7 +3,6 @@
 import { DesignSystemProvider } from '@/contexts/DesignSystemContext'
 import ComponentPreview from '@/components/design-system/ComponentPreview'
 import { useDesignSystem } from '@/contexts/DesignSystemContext'
-import { defaultTheme } from '@/contexts/DesignSystemContext'
 
 function TestSettingsContent() {
   const { theme, componentSettings } = useDesignSystem()
@@ -55,11 +54,11 @@ function TestSettingsContent() {
         <div className="mt-12 p-6 bg-muted/50 rounded-lg">
           <h3 className="text-lg font-semibold mb-4">테스트 방법</h3>
           <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>각 컴포넌트의 "세부 설정" 섹션을 열어보세요</li>
+            <li>각 컴포넌트의 &quot;세부 설정&quot; 섹션을 열어보세요</li>
             <li>설정값을 변경해보세요 (크기, 변형, 상태 등)</li>
             <li>변경사항이 즉시 미리보기에 반영되는지 확인하세요</li>
             <li>여러 컴포넌트의 설정을 동시에 변경해보세요</li>
-            <li>위의 "현재 컴포넌트 설정 상태"가 실시간으로 업데이트되는지 확인하세요</li>
+            <li>위의 &quot;현재 컴포넌트 설정 상태&quot;가 실시간으로 업데이트되는지 확인하세요</li>
           </ol>
           
           <div className="mt-4 p-3 bg-blue-50 rounded text-sm text-blue-800">
