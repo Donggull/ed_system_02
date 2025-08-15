@@ -23,7 +23,7 @@ export interface DesignSystemWithDetails extends DesignSystem {
 }
 
 class DesignSystemService {
-  async saveDesignSystem(data: DesignSystemData, userId: string): Promise<string> {
+  async saveDesignSystem(data: DesignSystemData, userId: string | null): Promise<string> {
     try {
       // Supabase가 설정되지 않은 경우 시뮬레이션
       if (!isSupabaseConfigured()) {
@@ -35,6 +35,13 @@ class DesignSystemService {
         })
         return 'sim-ds-' + Date.now()
       }
+
+      console.info('💾 Saving design system to Supabase:', {
+        name: data.name,
+        userId,
+        componentsCount: data.components.length,
+        themesCount: data.themes.length
+      })
 
       // 디자인 시스템 생성
       const { data: designSystem, error: dsError } = await supabase
@@ -96,24 +103,30 @@ class DesignSystemService {
   async updateDesignSystem(
     designSystemId: string,
     data: Partial<DesignSystemData>,
-    userId: string,
+    userId: string | null,
     changelog?: string
   ): Promise<void> {
     try {
       // 기존 디자인 시스템 정보 가져오기
-      const { data: existingSystem, error: fetchError } = await supabase
+      let fetchQuery = supabase
         .from('design_systems')
         .select('version, user_id')
         .eq('id', designSystemId)
-        .eq('user_id', userId)
-        .single()
+      
+      if (userId) {
+        fetchQuery = fetchQuery.eq('user_id', userId)
+      } else {
+        fetchQuery = fetchQuery.is('user_id', null)
+      }
+      
+      const { data: existingSystem, error: fetchError } = await fetchQuery.single()
 
       if (fetchError) throw fetchError
 
       const newVersion = existingSystem.version + 1
 
       // 디자인 시스템 메타데이터 업데이트
-      const { error: updateError } = await supabase
+      let updateQuery = supabase
         .from('design_systems')
         .update({
           name: data.name,
@@ -123,7 +136,14 @@ class DesignSystemService {
           version: newVersion,
         })
         .eq('id', designSystemId)
-        .eq('user_id', userId)
+      
+      if (userId) {
+        updateQuery = updateQuery.eq('user_id', userId)
+      } else {
+        updateQuery = updateQuery.is('user_id', null)
+      }
+      
+      const { error: updateError } = await updateQuery
 
       if (updateError) throw updateError
 
@@ -197,7 +217,7 @@ class DesignSystemService {
     if (error) throw error
   }
 
-  async getDesignSystem(id: string, userId?: string): Promise<DesignSystemWithDetails | null> {
+  async getDesignSystem(id: string, userId?: string | null): Promise<DesignSystemWithDetails | null> {
     try {
       // Supabase가 설정되지 않은 경우 시뮬레이션
       if (!isSupabaseConfigured()) {
@@ -294,7 +314,7 @@ class DesignSystemService {
     }
   }
 
-  async getUserDesignSystems(userId: string): Promise<DesignSystem[]> {
+  async getUserDesignSystems(userId: string | null): Promise<DesignSystem[]> {
     try {
       // Supabase가 설정되지 않은 경우 시뮬레이션
       if (!isSupabaseConfigured()) {
@@ -302,11 +322,19 @@ class DesignSystemService {
         return []
       }
 
-      const { data, error } = await supabase
+      console.info('📋 Fetching user design systems from Supabase:', { userId })
+
+      let query = supabase
         .from('design_systems')
         .select('*')
-        .eq('user_id', userId)
-        .order('updated_at', { ascending: false })
+      
+      if (userId) {
+        query = query.eq('user_id', userId)
+      } else {
+        query = query.is('user_id', null)
+      }
+      
+      const { data, error } = await query.order('updated_at', { ascending: false })
 
       if (error) throw error
 
@@ -469,20 +497,28 @@ class DesignSystemService {
     }
   }
 
-  async togglePublic(designSystemId: string, userId: string, isPublic: boolean): Promise<void> {
+  async togglePublic(designSystemId: string, userId: string | null, isPublic: boolean): Promise<void> {
     try {
-      // 임시 처리: 실제 Supabase 연결 없이 시뮬레이션
-      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || 
-          process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co') {
+      // Supabase가 설정되지 않은 경우 시뮬레이션
+      if (!isSupabaseConfigured()) {
         console.log('Simulating toggle public:', { designSystemId, userId, isPublic })
         return
       }
 
-      const { error } = await supabase
+      console.info('🔄 Toggling public status in Supabase:', { designSystemId, userId, isPublic })
+
+      let query = supabase
         .from('design_systems')
         .update({ is_public: isPublic })
         .eq('id', designSystemId)
-        .eq('user_id', userId)
+      
+      if (userId) {
+        query = query.eq('user_id', userId)
+      } else {
+        query = query.is('user_id', null)
+      }
+      
+      const { error } = await query
 
       if (error) throw error
     } catch (error) {
@@ -491,13 +527,20 @@ class DesignSystemService {
     }
   }
 
-  async deleteDesignSystem(designSystemId: string, userId: string): Promise<void> {
+  async deleteDesignSystem(designSystemId: string, userId: string | null): Promise<void> {
     try {
-      const { error } = await supabase
+      let query = supabase
         .from('design_systems')
         .delete()
         .eq('id', designSystemId)
-        .eq('user_id', userId)
+      
+      if (userId) {
+        query = query.eq('user_id', userId)
+      } else {
+        query = query.is('user_id', null)
+      }
+      
+      const { error } = await query
 
       if (error) throw error
     } catch (error) {

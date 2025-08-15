@@ -44,8 +44,8 @@ function HomeContent() {
     category: string
   }) => {
     try {
-      // 임시 사용자 ID (실제로는 인증 시스템에서 가져와야 함)
-      const userId = 'temp-user-id'
+      // 임시 사용자 ID - Supabase auth 미구현으로 인해 null로 설정
+      const userId = null
       
       const designSystemData: DesignSystemData = {
         name: saveData.name,
@@ -87,7 +87,7 @@ function HomeContent() {
     if (!savedDesignSystem) return
     
     try {
-      const userId = 'temp-user-id'
+      const userId = null
       await designSystemService.togglePublic(savedDesignSystem.id, userId, isPublic)
       
       // 업데이트된 정보 가져오기

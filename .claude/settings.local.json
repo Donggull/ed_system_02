@@ -17,7 +17,10 @@
       "Bash(npm run build:*)",
       "Bash(git add:*)",
       "Bash(npx tsc:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(claude mcp:*)",
+      "mcp__supabase-mcp__list_tables",
+      "mcp__supabase-mcp__execute_sql"
     ],
     "deny": [],
     "ask": []
