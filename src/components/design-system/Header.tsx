@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useDesignSystem } from '@/contexts/DesignSystemContext'
 import { generateComponentCSS } from '@/lib/themeGenerator'
 import Button from '@/components/ui/Button'
+import { AuthButton } from '@/components/auth/AuthButton'
 
 import { useState } from 'react'
 import { Save, Share2, Search, Heart } from 'lucide-react'
@@ -161,6 +162,8 @@ export default function Header({ activeTab = 'design', onTabChange, onSave, onSh
               저장하기
             </Button>
           )}
+
+          <AuthButton />
         </div>
       </div>
 
